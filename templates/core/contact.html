@@ -67,6 +67,20 @@
             <a href="mailto:{{ site_settings.email }}" class="text-primary-600 text-sm font-medium hover:text-primary-800">{{ site_settings.email }}</a>
           </div>
         </div>
+        {% if site_settings.google_maps_url %}
+        <div class="flex items-start gap-4 p-5 bg-white rounded-2xl border border-sage-200 hover:border-primary-300 transition-colors">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-map text-primary-600"></i>
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 mb-0.5">Find Us on Google Maps</div>
+            <a href="{{ site_settings.google_maps_url }}" target="_blank" rel="noopener noreferrer"
+               class="text-primary-600 text-sm font-medium hover:text-primary-800">
+              Open in Google Maps <i class="fas fa-external-link-alt text-xs ml-1"></i>
+            </a>
+          </div>
+        </div>
+        {% endif %}
         {% else %}
         <div class="p-5 bg-sage-100 rounded-2xl text-gray-500 text-sm">Contact information will be updated soon.</div>
         {% endif %}

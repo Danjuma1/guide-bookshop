@@ -12,6 +12,7 @@ class SiteSettings(models.Model):
     facebook_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
     twitter_url = models.URLField(blank=True)
+    google_maps_url = models.URLField(blank=True)
     whatsapp_number = models.CharField(max_length=20, blank=True)
     currency = models.CharField(max_length=5, default='₦')
     vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=7.5)
