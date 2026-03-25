@@ -20,7 +20,7 @@ python seed_data.py
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/` for the public store.
+Visit `http://127.0.0.1:8080/` for the public store.
 
 ---
 
@@ -32,7 +32,7 @@ Visit `http://127.0.0.1:8000/` for the public store.
 | Manager  | manager1   | manager123   | Reports + Mgmt |
 | Cashier  | cashier1   | cashier123   | POS + Sales    |
 
-Staff Portal: `http://127.0.0.1:8000/accounts/login/`
+Staff Portal: `http://127.0.0.1:8080/accounts/login/`
 
 ---
 

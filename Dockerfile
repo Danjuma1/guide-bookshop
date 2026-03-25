@@ -22,11 +22,11 @@ COPY . .
 
 RUN chmod +x entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 8080
 
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["gunicorn", "guide_bookshop.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
+     "--bind", "0.0.0.0:8080", \
      "--workers", "3", \
      "--timeout", "120", \
      "--access-logfile", "-", \
