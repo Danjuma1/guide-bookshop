@@ -1,0 +1,59 @@
+{% extends 'base_admin.html' %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1.5" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+
+    <!-- Profile Header -->
+    <div class="px-7 pt-7 pb-6 border-b border-sage-200">
+      <div class="flex items-center gap-5">
+        <div class="w-18 w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-3xl flex-shrink-0"
+             style="background:linear-gradient(135deg,#22c55e,#16a34a,#14532d)">
+          {{ user.first_name.0|default:user.username.0|upper }}
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">{{ user.get_full_name|default:user.username }}</h2>
+          <div class="text-gray-500 text-sm mt-0.5">{{ user.email }}</div>
+          {% if profile %}
+          <div class="mt-2">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-700">
+              <i class="fas fa-user-tie text-primary-500 text-xs"></i>
+              {{ profile.get_role_display }}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Details -->
+    {% if profile %}
+    <div class="px-7 py-6">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Staff Details</div>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between py-3 border-b border-sage-100">
+          <span class="text-sm text-gray-500 flex items-center gap-2">
+            <i class="fas fa-id-badge text-primary-400 text-xs w-4 text-center"></i>Employee ID
+          </span>
+          <span class="text-sm font-semibold text-gray-800">{{ profile.employee_id|default:"—" }}</span>
+        </div>
+        <div class="flex items-center justify-between py-3 border-b border-sage-100">
+          <span class="text-sm text-gray-500 flex items-center gap-2">
+            <i class="fas fa-phone-alt text-primary-400 text-xs w-4 text-center"></i>Phone
+          </span>
+          <span class="text-sm font-semibold text-gray-800">{{ profile.phone|default:"—" }}</span>
+        </div>
+        <div class="flex items-center justify-between py-3">
+          <span class="text-sm text-gray-500 flex items-center gap-2">
+            <i class="fas fa-calendar text-primary-400 text-xs w-4 text-center"></i>Date Joined
+          </span>
+          <span class="text-sm font-semibold text-gray-800">{{ profile.date_joined|date:"d M Y" }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

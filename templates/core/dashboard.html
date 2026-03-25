@@ -1,0 +1,332 @@
+{% extends 'base_admin.html' %}
+{% block title %}Dashboard - Guide Bookshop ERP{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .quick-action {
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+  }
+  .quick-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(22,163,74,0.18);
+  }
+  .table-row:hover { background: #f8fdf8; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <div class="stat-card p-5 overflow-hidden relative">
+      <div class="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-6 translate-x-6 opacity-10"
+           style="background:radial-gradient(circle,#16a34a,transparent)"></div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Today's Revenue</span>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-naira-sign text-primary-600 text-sm"></i>
+        </div>
+      </div>
+      <div class="text-2xl font-bold text-gray-800">&#8358;{{ today_revenue|currency }}</div>
+      <div class="flex items-center gap-1.5 mt-2">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">{{ today_transactions }} sale{{ today_transactions|pluralize }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card p-5 overflow-hidden relative">
+      <div class="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-6 translate-x-6 opacity-10"
+           style="background:radial-gradient(circle,#3b82f6,transparent)"></div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Monthly Revenue</span>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50">
+          <i class="fas fa-chart-line text-blue-600 text-sm"></i>
+        </div>
+      </div>
+      <div class="text-2xl font-bold text-gray-800">&#8358;{{ monthly_revenue|currency }}</div>
+      <div class="flex items-center gap-1.5 mt-2">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{{ monthly_transactions }} sale{{ monthly_transactions|pluralize }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card p-5 overflow-hidden relative">
+      <div class="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-6 translate-x-6 opacity-10"
+           style="background:radial-gradient(circle,#8b5cf6,transparent)"></div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Products</span>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-violet-50">
+          <i class="fas fa-boxes-stacked text-violet-600 text-sm"></i>
+        </div>
+      </div>
+      <div class="text-2xl font-bold text-gray-800">{{ total_products }}</div>
+      <div class="mt-2">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">Active products</span>
+      </div>
+    </div>
+
+    <div class="stat-card p-5 overflow-hidden relative">
+      <div class="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-6 translate-x-6 opacity-10"
+           style="background:radial-gradient(circle,#f97316,transparent)"></div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Stock Alerts</span>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50">
+          <i class="fas fa-triangle-exclamation text-orange-500 text-sm"></i>
+        </div>
+      </div>
+      <div class="text-2xl font-bold text-gray-800">{{ low_stock_count }}</div>
+      <div class="mt-2">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">{{ out_of_stock }} out of stock</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white rounded-2xl p-5 border border-sage-200">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Quick Actions</h3>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a href="{% url 'pos' %}"
+         class="quick-action flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-semibold"
+         style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 2px 8px rgba(22,163,74,0.3)">
+        <i class="fas fa-cash-register"></i> Open POS
+      </a>
+      {% if user_can_write %}
+      <a href="{% url 'product_add' %}"
+         class="quick-action flex items-center gap-2 bg-sage-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-50 hover:text-primary-700 border border-sage-200 transition-colors">
+        <i class="fas fa-plus text-primary-500"></i> Add Product
+      </a>
+      {% endif %}
+      <a href="{% url 'new_sale' %}"
+         class="quick-action flex items-center gap-2 bg-sage-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-50 hover:text-primary-700 border border-sage-200 transition-colors">
+        <i class="fas fa-receipt text-primary-500"></i> New Sale
+      </a>
+      {% if user_can_write %}
+      <a href="{% url 'expense_add' %}"
+         class="quick-action flex items-center gap-2 bg-sage-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-50 hover:text-primary-700 border border-sage-200 transition-colors">
+        <i class="fas fa-wallet text-primary-500"></i> Add Expense
+      </a>
+      <a href="{% url 'po_add' %}"
+         class="quick-action flex items-center gap-2 bg-sage-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-50 hover:text-primary-700 border border-sage-200 transition-colors">
+        <i class="fas fa-file-invoice text-primary-500"></i> Purchase Order
+      </a>
+      {% endif %}
+      {% if pending_online_orders > 0 %}
+      <a href="{% url 'manage_orders' %}"
+         class="quick-action flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
+        <i class="fas fa-globe"></i> {{ pending_online_orders }} Online Order{{ pending_online_orders|pluralize }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid lg:grid-cols-3 gap-5">
+
+    <!-- Revenue Chart -->
+    <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-sage-200">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+          <h3 class="font-semibold text-gray-800">Revenue Trend</h3>
+          <span class="text-xs text-gray-400 font-normal">Last 7 Days</span>
+        </div>
+      </div>
+      <canvas id="revenueChart" height="110"></canvas>
+    </div>
+
+    <!-- Top Products -->
+    <div class="bg-white rounded-2xl p-5 border border-sage-200">
+      <div class="flex items-center gap-2 mb-5">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Top Products</h3>
+        <span class="text-xs text-gray-400 font-normal">This Month</span>
+      </div>
+      {% if top_products %}
+      <div class="space-y-3">
+        {% for p in top_products %}
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 text-white"
+               style="background:linear-gradient(135deg,{% if forloop.counter == 1 %}#16a34a,#14532d{% elif forloop.counter == 2 %}#22c55e,#16a34a{% else %}#4ade80,#22c55e{% endif %})">
+            {{ forloop.counter }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm text-gray-700 truncate font-medium">{{ p.product__name }}</div>
+            <div class="w-full bg-primary-50 rounded-full h-1.5 mt-1">
+              <div class="bg-primary-400 h-1.5 rounded-full" style="width:{{ forloop.counter|add:'-1'|default:'1' }}0%"></div>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-primary-700 ml-1 whitespace-nowrap">{{ p.total_qty }} sold</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="w-12 h-12 rounded-xl bg-sage-100 flex items-center justify-center mb-3">
+          <i class="fas fa-chart-bar text-xl text-gray-300"></i>
+        </div>
+        <p class="text-sm">No sales data yet</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="grid lg:grid-cols-2 gap-5">
+
+    <!-- Recent Sales -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="p-5 border-b border-sage-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+          <h3 class="font-semibold text-gray-800">Recent Sales</h3>
+        </div>
+        <a href="{% url 'sale_list' %}" class="text-xs font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">View All</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-sage-100">
+              <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Invoice</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Customer</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in recent_sales %}
+            <tr class="table-row border-b border-sage-50 transition-colors">
+              <td class="px-5 py-3">
+                <a href="{% url 'sale_detail' sale.pk %}" class="text-primary-600 font-semibold text-sm hover:text-primary-800">{{ sale.invoice_number }}</a>
+              </td>
+              <td class="px-5 py-3 text-sm text-gray-600">{{ sale.customer.name|default:"Walk-in" }}</td>
+              <td class="px-5 py-3">
+                <span class="text-sm font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</span>
+              </td>
+              <td class="px-5 py-3 text-xs text-gray-400">{{ sale.sale_date|date:"d M" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center py-10 text-gray-400 text-sm">No sales yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="bg-white rounded-2xl border border-sage-200 p-5">
+      <div class="flex items-center gap-2 mb-5">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Alerts & Notifications</h3>
+      </div>
+      <div class="space-y-3">
+        {% if low_stock_count > 0 %}
+        <a href="{% url 'low_stock_report' %}" class="flex items-start gap-3 p-4 bg-orange-50 rounded-2xl border border-orange-100 hover:bg-orange-100 transition-colors group">
+          <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <i class="fas fa-triangle-exclamation text-orange-500 text-sm"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-orange-800">Low Stock Alert</div>
+            <div class="text-xs text-orange-600 mt-0.5">{{ low_stock_count }} product{{ low_stock_count|pluralize }} running low on stock</div>
+          </div>
+          <i class="fas fa-arrow-right text-orange-400 text-xs ml-auto self-center"></i>
+        </a>
+        {% endif %}
+        {% if out_of_stock > 0 %}
+        <div class="flex items-start gap-3 p-4 bg-red-50 rounded-2xl border border-red-100">
+          <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-circle-xmark text-red-500 text-sm"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-red-800">Out of Stock</div>
+            <div class="text-xs text-red-600 mt-0.5">{{ out_of_stock }} product{{ out_of_stock|pluralize }} out of stock</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if pending_online_orders > 0 %}
+        <a href="{% url 'manage_orders' %}" class="flex items-start gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-100 transition-colors group">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <i class="fas fa-globe text-blue-500 text-sm"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-blue-800">Online Orders Pending</div>
+            <div class="text-xs text-blue-600 mt-0.5">{{ pending_online_orders }} order{{ pending_online_orders|pluralize }} awaiting processing</div>
+          </div>
+          <i class="fas fa-arrow-right text-blue-400 text-xs ml-auto self-center"></i>
+        </a>
+        {% endif %}
+        {% if not low_stock_count and not out_of_stock and not pending_online_orders %}
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+               style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-circle-check text-2xl text-primary-600"></i>
+          </div>
+          <p class="text-sm font-medium text-gray-600">All systems good!</p>
+          <p class="text-xs mt-1">No alerts at this time</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartData = {{ chart_data|safe }};
+const ctx = document.getElementById('revenueChart');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: chartData.map(d => d.date),
+    datasets: [{
+      label: 'Revenue (₦)',
+      data: chartData.map(d => d.revenue),
+      backgroundColor: function(context) {
+        const chart = context.chart;
+        const {ctx: c, chartArea} = chart;
+        if (!chartArea) return 'rgba(22,163,74,0.2)';
+        const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        gradient.addColorStop(0, 'rgba(22,163,74,0.35)');
+        gradient.addColorStop(1, 'rgba(22,163,74,0.05)');
+        return gradient;
+      },
+      borderColor: '#16a34a',
+      borderWidth: 2,
+      borderRadius: 8,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#052e16',
+        padding: 12,
+        cornerRadius: 10,
+        titleFont: { size: 11, family: 'Inter' },
+        bodyFont: { size: 13, family: 'Inter', weight: 'bold' },
+        callbacks: { label: v => ' ₦' + v.parsed.y.toLocaleString() }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#e2f0e2', drawBorder: false },
+        ticks: { callback: v => '₦' + (v/1000).toFixed(0) + 'k', font: { size: 10, family: 'Inter' }, color: '#6b7280' },
+        border: { display: false }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10, family: 'Inter' }, color: '#6b7280' },
+        border: { display: false }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

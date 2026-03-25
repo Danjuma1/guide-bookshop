@@ -1,0 +1,214 @@
+{% extends 'base_public.html' %}
+{% block title %}Guide Bookshop & Stationeries - Your Knowledge Partner{% endblock %}
+{% block content %}
+
+<!-- Hero -->
+<section class="hero-gradient text-white py-20 relative overflow-hidden">
+  <div class="absolute inset-0 opacity-10">
+    <div class="absolute top-10 left-10 w-64 h-64 rounded-full bg-white blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 w-80 h-80 rounded-full bg-green-300 blur-3xl"></div>
+  </div>
+  <div class="max-w-7xl mx-auto px-4 relative z-10">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-primary-700 bg-opacity-60 px-4 py-1.5 rounded-full text-sm mb-6">
+          <i class="fas fa-star text-yellow-300"></i>
+          <span>Nigeria's Trusted Bookshop</span>
+        </div>
+        <h1 class="font-display text-5xl md:text-6xl font-bold leading-tight mb-6">Books &amp; <span class="text-primary-300">Stationeries</span><br>For Every Need</h1>
+        <p class="text-primary-100 text-lg mb-8 leading-relaxed">Discover thousands of books, quality stationeries, and educational materials. We serve students, professionals, and book lovers across Nigeria.</p>
+        <div class="flex gap-4 flex-wrap">
+          <a href="{% url 'shop_home' %}" class="bg-white text-primary-800 px-6 py-3 rounded-xl font-semibold hover:bg-primary-50 transition-all shadow-lg"><i class="fas fa-shopping-bag mr-2"></i>Shop Now</a>
+          <a href="{% url 'about' %}" class="border-2 border-white text-white px-6 py-3 rounded-xl font-semibold hover:bg-white hover:text-primary-800 transition-all">Learn More</a>
+        </div>
+      </div>
+      <div class="hidden md:grid grid-cols-2 gap-4">
+        <div class="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-6 text-center">
+          <i class="fas fa-book text-4xl text-primary-200 mb-3"></i>
+          <div class="font-display text-3xl font-bold">5000+</div>
+          <div class="text-primary-200 text-sm">Book Titles</div>
+        </div>
+        <div class="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-6 text-center mt-6">
+          <i class="fas fa-pen text-4xl text-primary-200 mb-3"></i>
+          <div class="font-display text-3xl font-bold">2000+</div>
+          <div class="text-primary-200 text-sm">Stationery Items</div>
+        </div>
+        <div class="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-6 text-center">
+          <i class="fas fa-users text-4xl text-primary-200 mb-3"></i>
+          <div class="font-display text-3xl font-bold">10K+</div>
+          <div class="text-primary-200 text-sm">Happy Customers</div>
+        </div>
+        <div class="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-6 text-center mt-6">
+          <i class="fas fa-truck text-4xl text-primary-200 mb-3"></i>
+          <div class="font-display text-3xl font-bold">Fast</div>
+          <div class="text-primary-200 text-sm">Delivery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Categories -->
+<section class="py-14 bg-white">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="text-center mb-10">
+      <h2 class="font-display text-3xl font-bold text-gray-800 mb-2">Shop by Category</h2>
+      <p class="text-gray-500">Find exactly what you're looking for</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {% if categories %}
+        {% for cat in categories %}
+        <a href="{% url 'shop_home' %}?category={{ cat.slug }}" class="group bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 text-center hover:from-primary-100 hover:to-primary-200 transition-all card-hover border border-primary-100">
+          <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+            <i class="fas fa-book-open text-white"></i>
+          </div>
+          <div class="font-semibold text-gray-800 text-sm">{{ cat.name }}</div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 text-center card-hover border border-primary-100">
+          <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-book text-white"></i></div>
+          <div class="font-semibold text-gray-800 text-sm">Books</div>
+        </div>
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 text-center card-hover border border-primary-100">
+          <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-pen text-white"></i></div>
+          <div class="font-semibold text-gray-800 text-sm">Stationery</div>
+        </div>
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 text-center card-hover border border-primary-100">
+          <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-palette text-white"></i></div>
+          <div class="font-semibold text-gray-800 text-sm">Art Supplies</div>
+        </div>
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 text-center card-hover border border-primary-100">
+          <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-graduation-cap text-white"></i></div>
+          <div class="font-semibold text-gray-800 text-sm">Educational</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Featured Products -->
+{% if featured_products %}
+<section class="py-14 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <h2 class="font-display text-3xl font-bold text-gray-800 mb-1">Featured Products</h2>
+        <p class="text-gray-500">Handpicked for you</p>
+      </div>
+      <a href="{% url 'shop_home' %}" class="text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1">View all <i class="fas fa-arrow-right text-sm"></i></a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {% for product in featured_products %}
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-hover border border-gray-100">
+        <a href="{% url 'shop_product_detail' product.slug %}">
+          {% if product.image %}
+          <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-48 object-cover">
+          {% else %}
+          <div class="w-full h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+            <i class="fas fa-book text-primary-400 text-4xl"></i>
+          </div>
+          {% endif %}
+        </a>
+        <div class="p-4">
+          {% if product.category %}<div class="text-xs text-primary-600 font-medium mb-1">{{ product.category.name }}</div>{% endif %}
+          <a href="{% url 'shop_product_detail' product.slug %}" class="font-semibold text-gray-800 text-sm hover:text-primary-600 line-clamp-2 leading-snug block mb-2">{{ product.name }}</a>
+          {% if product.author %}<div class="text-xs text-gray-400 mb-2">by {{ product.author }}</div>{% endif %}
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-primary-700 font-bold">&#8358;{{ product.effective_price|currency }}</span>
+              {% if product.discount_price %}<span class="text-gray-400 text-xs line-through ml-1">&#8358;{{ product.selling_price|currency }}</span>{% endif %}
+            </div>
+            <a href="{% url 'add_to_cart' product.pk %}" class="bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors text-sm">
+              <i class="fas fa-cart-plus"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- New Arrivals -->
+{% if new_arrivals %}
+<section class="py-14 bg-white">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <h2 class="font-display text-3xl font-bold text-gray-800 mb-1">New Arrivals</h2>
+        <p class="text-gray-500">Fresh stock just in</p>
+      </div>
+      <a href="{% url 'shop_home' %}?sort=newest" class="text-primary-600 font-medium flex items-center gap-1">View all <i class="fas fa-arrow-right text-sm"></i></a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {% for product in new_arrivals %}
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-hover border border-gray-100">
+        <a href="{% url 'shop_product_detail' product.slug %}">
+          {% if product.image %}
+          <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-44 object-cover">
+          {% else %}
+          <div class="w-full h-44 bg-gradient-to-br from-green-50 to-primary-100 flex items-center justify-center">
+            <i class="fas fa-book-open text-primary-300 text-3xl"></i>
+          </div>
+          {% endif %}
+        </a>
+        <div class="p-3">
+          <div class="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full mb-2 font-medium">
+            <i class="fas fa-star text-xs"></i> New
+          </div>
+          <a href="{% url 'shop_product_detail' product.slug %}" class="font-medium text-gray-800 text-sm hover:text-primary-600 line-clamp-2 block mb-2 leading-snug">{{ product.name }}</a>
+          <div class="flex items-center justify-between">
+            <span class="text-primary-700 font-bold text-sm">&#8358;{{ product.effective_price|currency }}</span>
+            <a href="{% url 'add_to_cart' product.pk %}" class="bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700 transition-colors">Add</a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Why Us -->
+<section class="py-14 bg-primary-800 text-white">
+  <div class="max-w-7xl mx-auto px-4">
+    <h2 class="font-display text-3xl font-bold text-center mb-12">Why Choose Guide Bookshop?</h2>
+    <div class="grid md:grid-cols-4 gap-8 text-center">
+      <div>
+        <div class="w-14 h-14 bg-primary-700 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-truck text-2xl text-primary-200"></i></div>
+        <h3 class="font-semibold text-lg mb-2">Fast Delivery</h3>
+        <p class="text-primary-200 text-sm">Quick and safe delivery to your doorstep</p>
+      </div>
+      <div>
+        <div class="w-14 h-14 bg-primary-700 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-halved text-2xl text-primary-200"></i></div>
+        <h3 class="font-semibold text-lg mb-2">Quality Assured</h3>
+        <p class="text-primary-200 text-sm">Genuine products of the highest quality</p>
+      </div>
+      <div>
+        <div class="w-14 h-14 bg-primary-700 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-tag text-2xl text-primary-200"></i></div>
+        <h3 class="font-semibold text-lg mb-2">Best Prices</h3>
+        <p class="text-primary-200 text-sm">Competitive pricing with regular discounts</p>
+      </div>
+      <div>
+        <div class="w-14 h-14 bg-primary-700 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-headset text-2xl text-primary-200"></i></div>
+        <h3 class="font-semibold text-lg mb-2">Great Support</h3>
+        <p class="text-primary-200 text-sm">Dedicated customer service every step</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="py-16 bg-gray-50">
+  <div class="max-w-3xl mx-auto px-4 text-center">
+    <h2 class="font-display text-4xl font-bold text-gray-800 mb-4">Ready to Shop?</h2>
+    <p class="text-gray-500 text-lg mb-8">Browse our wide collection of books, stationeries, and educational materials.</p>
+    <a href="{% url 'shop_home' %}" class="bg-primary-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-primary-700 transition-all shadow-lg inline-flex items-center gap-2">
+      <i class="fas fa-shopping-bag"></i> Explore Our Shop
+    </a>
+  </div>
+</section>
+
+{% endblock %}

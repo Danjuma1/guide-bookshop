@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Guide Bookshop & Stationeries{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest:  { DEFAULT:'#052e16', 950:'#021a0d', 900:'#052e16', 800:'#0f3d1f', 700:'#14532d' },
+            primary: { 50:'#f0fdf4', 100:'#dcfce7', 200:'#bbf7d0', 300:'#86efac', 400:'#4ade80', 500:'#22c55e', 600:'#16a34a', 700:'#15803d', 800:'#166534', 900:'#14532d', 950:'#052e16' },
+            emerald: { 400:'#34d399', 500:'#10b981', 600:'#059669', 700:'#047857' },
+            sage:    { 100:'#f1f8f1', 200:'#e2f0e2', 300:'#c5e1c5', 400:'#96c896', 500:'#6aaf6a' },
+          },
+          fontFamily: { display: ['Playfair Display', 'serif'], body: ['Inter', 'sans-serif'] },
+          boxShadow: {
+            'green-sm': '0 2px 8px rgba(22,163,74,0.12)',
+            'green-md': '0 4px 20px rgba(22,163,74,0.18)',
+            'green-lg': '0 8px 40px rgba(22,163,74,0.22)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-display { font-family: 'Playfair Display', serif; }
+
+    /* Hero gradient - deep forest to vibrant green */
+    .hero-gradient {
+      background: linear-gradient(135deg, #052e16 0%, #14532d 30%, #15803d 65%, #16a34a 100%);
+    }
+
+    /* Glassmorphism card */
+    .glass-card {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Card hover */
+    .card-hover {
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1), box-shadow 0.25s cubic-bezier(.4,0,.2,1);
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 40px rgba(22,163,74,0.18);
+    }
+
+    /* Navbar active nav link */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 2px;
+      background: #16a34a;
+      transform: scaleX(0);
+      transition: transform 0.2s ease;
+      border-radius: 2px;
+    }
+    .nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); }
+
+    /* Green shimmer button */
+    .btn-primary {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(22,163,74,0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #15803d, #14532d);
+      box-shadow: 0 6px 20px rgba(22,163,74,0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Smooth scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f0fdf4; }
+    ::-webkit-scrollbar-thumb { background: #86efac; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #16a34a; }
+
+    /* Geometric decorative blob */
+    .blob { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; animation: morphBlob 8s ease-in-out infinite; }
+    @keyframes morphBlob { 0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%} 50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%} }
+
+    /* Announcement marquee */
+    .ann-text { animation: slide 20s linear infinite; display: inline-block; }
+    @keyframes slide { 0%{transform:translateX(100vw)} 100%{transform:translateX(-100%)} }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-sage-100 font-body">
+
+<!-- Announcement Bar -->
+{% if announcements %}
+<div class="bg-forest-700 text-white text-center py-2 text-xs font-medium overflow-hidden">
+  <span class="ann-text">{% for ann in announcements %}{{ ann.message }}{% if not forloop.last %} &nbsp;&bull;&nbsp; {% endif %}{% endfor %}</span>
+</div>
+{% endif %}
+
+<!-- Top Bar -->
+<div class="bg-primary-950 text-primary-300 text-xs py-2 border-b border-primary-900">
+  <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+    <div class="flex items-center gap-5">
+      {% if site_settings %}
+      <span class="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
+        <i class="fas fa-phone-alt text-primary-500"></i>{{ site_settings.phone }}
+      </span>
+      <span class="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
+        <i class="fas fa-envelope text-primary-500"></i>{{ site_settings.email }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-4">
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 hover:text-white transition-colors group">
+          <div class="w-5 h-5 bg-primary-700 rounded-full flex items-center justify-center group-hover:bg-primary-600">
+            <i class="fas fa-tachometer-alt text-xs"></i>
+          </div>
+          Staff Portal
+        </a>
+        <span class="text-primary-700">|</span>
+        <a href="{% url 'logout' %}" class="hover:text-white transition-colors">Logout</a>
+      {% else %}
+        <a href="{% url 'login' %}" class="flex items-center gap-1.5 hover:text-white transition-colors">
+          <i class="fas fa-user-circle"></i> Staff Login
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Main Header -->
+<header class="bg-white shadow-sm sticky top-0 z-50 border-b border-sage-200">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between h-18 py-3">
+
+      <!-- Logo -->
+      <a href="{% url 'landing' %}" class="flex items-center gap-3 group">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center shadow-green-sm group-hover:shadow-green-md transition-all"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+          <i class="fas fa-book-open text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="font-display font-bold text-primary-900 text-lg leading-tight tracking-tight">Guide Bookshop</div>
+          <div class="text-xs text-emerald-600 font-medium leading-tight tracking-wide uppercase">& Stationeries</div>
+        </div>
+      </a>
+
+      <!-- Nav -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+        <a href="{% url 'landing' %}" class="nav-link hover:text-primary-700 transition-colors py-1">Home</a>
+        <a href="{% url 'shop_home' %}" class="nav-link hover:text-primary-700 transition-colors py-1">Shop</a>
+        <a href="{% url 'about' %}" class="nav-link hover:text-primary-700 transition-colors py-1">About</a>
+        <a href="{% url 'contact' %}" class="nav-link hover:text-primary-700 transition-colors py-1">Contact</a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-3">
+        <a href="{% url 'shop_home' %}?q=" class="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-all">
+          <i class="fas fa-search"></i>
+        </a>
+        <a href="{% url 'cart' %}" class="relative flex w-9 h-9 items-center justify-center rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all">
+          <i class="fas fa-shopping-bag text-lg"></i>
+          {% if cart_count > 0 %}
+          <span class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold leading-none shadow-green-sm">{{ cart_count }}</span>
+          {% endif %}
+        </a>
+        <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-600 hover:bg-primary-50 transition-all" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-sage-200 mt-1">
+      <nav class="flex flex-col gap-1 pt-3">
+        <a href="{% url 'landing' %}" class="px-3 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50 hover:text-primary-700 font-medium text-sm transition-all">
+          <i class="fas fa-home w-5 mr-2 text-primary-400"></i>Home
+        </a>
+        <a href="{% url 'shop_home' %}" class="px-3 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50 hover:text-primary-700 font-medium text-sm transition-all">
+          <i class="fas fa-store w-5 mr-2 text-primary-400"></i>Shop
+        </a>
+        <a href="{% url 'about' %}" class="px-3 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50 hover:text-primary-700 font-medium text-sm transition-all">
+          <i class="fas fa-info-circle w-5 mr-2 text-primary-400"></i>About
+        </a>
+        <a href="{% url 'contact' %}" class="px-3 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50 hover:text-primary-700 font-medium text-sm transition-all">
+          <i class="fas fa-envelope w-5 mr-2 text-primary-400"></i>Contact
+        </a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- Messages -->
+{% if messages %}
+<div class="max-w-7xl mx-auto px-4 mt-4 space-y-2">
+  {% for message in messages %}
+  <div class="flex items-center gap-3 p-4 rounded-xl border font-medium text-sm
+    {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200
+    {% elif message.tags == 'success' %}bg-primary-50 text-primary-900 border-primary-200
+    {% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+    <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation text-red-500{% elif message.tags == 'success' %}fa-circle-check text-primary-600{% else %}fa-circle-info text-blue-500{% endif %}"></i>
+    <span class="flex-1">{{ message }}</span>
+    <button onclick="this.parentElement.remove()" class="opacity-50 hover:opacity-100 transition-opacity ml-auto">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<!-- Footer -->
+<footer class="mt-20" style="background:linear-gradient(160deg,#052e16 0%,#0f3d1f 40%,#14532d 100%)">
+  <!-- Wave -->
+  {% comment %} <div style="height:48px;overflow:hidden;margin-top:-1px">
+    <svg viewBox="0 0 1440 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%" preserveAspectRatio="none">
+      <path d="M0 48L60 40C120 32 240 16 360 12C480 8 600 16 720 22C840 28 960 32 1080 28C1200 24 1320 12 1380 6L1440 0V48H1380C1320 48 1200 48 1080 48C960 48 840 48 720 48C600 48 480 48 360 48C240 48 120 48 60 48H0Z" fill="#f1f8f1"/>
+    </svg>
+  </div> {% endcomment %}
+
+  <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+
+      <!-- Brand -->
+      <div class="md:col-span-4">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center shadow-green-md">
+            <i class="fas fa-book-open text-white text-xl"></i>
+          </div>
+          <div>
+            <div class="font-display font-bold text-2xl text-white">Guide Bookshop</div>
+            <div class="text-primary-400 text-xs font-medium tracking-widest uppercase">& Stationeries</div>
+          </div>
+        </div>
+        <p class="text-primary-300 text-sm leading-relaxed max-w-xs">
+          Your trusted partner for books, stationeries, and educational materials. Quality products, unmatched service across Nigeria.
+        </p>
+        <div class="flex gap-3 mt-6">
+          {% if site_settings and site_settings.facebook_url %}
+          <a href="{{ site_settings.facebook_url }}" class="w-9 h-9 rounded-xl bg-white bg-opacity-10 hover:bg-primary-600 flex items-center justify-center text-primary-300 hover:text-white transition-all">
+            <i class="fab fa-facebook-f text-sm"></i>
+          </a>{% endif %}
+          {% if site_settings and site_settings.instagram_url %}
+          <a href="{{ site_settings.instagram_url }}" class="w-9 h-9 rounded-xl bg-white bg-opacity-10 hover:bg-primary-600 flex items-center justify-center text-primary-300 hover:text-white transition-all">
+            <i class="fab fa-instagram text-sm"></i>
+          </a>{% endif %}
+          {% if site_settings and site_settings.twitter_url %}
+          <a href="{{ site_settings.twitter_url }}" class="w-9 h-9 rounded-xl bg-white bg-opacity-10 hover:bg-primary-600 flex items-center justify-center text-primary-300 hover:text-white transition-all">
+            <i class="fab fa-twitter text-sm"></i>
+          </a>{% endif %}
+          {% if site_settings and site_settings.whatsapp_number %}
+          <a href="https://wa.me/{{ site_settings.whatsapp_number }}" class="w-9 h-9 rounded-xl bg-white bg-opacity-10 hover:bg-emerald-600 flex items-center justify-center text-primary-300 hover:text-white transition-all">
+            <i class="fab fa-whatsapp text-sm"></i>
+          </a>{% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="md:col-span-2">
+        <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-widest">Shop</h4>
+        <ul class="space-y-3 text-primary-300 text-sm">
+          <li><a href="{% url 'shop_home' %}" class="hover:text-white hover:translate-x-1 transition-all inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>All Products</a></li>
+          <li><a href="{% url 'shop_home' %}?type=book" class="hover:text-white hover:translate-x-1 transition-all inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>Books</a></li>
+          <li><a href="{% url 'shop_home' %}?type=stationery" class="hover:text-white hover:translate-x-1 transition-all inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>Stationery</a></li>
+          <li><a href="{% url 'order_list' %}" class="hover:text-white hover:translate-x-1 transition-all inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>Track Order</a></li>
+        </ul>
+      </div>
+
+      <!-- Company -->
+      <div class="md:col-span-2">
+        <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-widest">Company</h4>
+        <ul class="space-y-3 text-primary-300 text-sm">
+          <li><a href="{% url 'about' %}" class="hover:text-white transition-colors inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>About Us</a></li>
+          <li><a href="{% url 'contact' %}" class="hover:text-white transition-colors inline-flex items-center gap-2"><i class="fas fa-chevron-right text-xs text-primary-600"></i>Contact</a></li>
+        </ul>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="md:col-span-4">
+        <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-widest">Get in Touch</h4>
+        {% if site_settings %}
+        <ul class="space-y-4 text-primary-300 text-sm">
+          <li class="flex gap-3 items-start">
+            <div class="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <i class="fas fa-map-marker-alt text-primary-400 text-xs"></i>
+            </div>
+            <span class="leading-relaxed">{{ site_settings.address }}</span>
+          </li>
+          <li class="flex gap-3 items-center">
+            <div class="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-phone-alt text-primary-400 text-xs"></i>
+            </div>
+            <a href="tel:{{ site_settings.phone }}" class="hover:text-white transition-colors">{{ site_settings.phone }}</a>
+          </li>
+          <li class="flex gap-3 items-center">
+            <div class="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-envelope text-primary-400 text-xs"></i>
+            </div>
+            <a href="mailto:{{ site_settings.email }}" class="hover:text-white transition-colors">{{ site_settings.email }}</a>
+          </li>
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="border-t border-primary-900 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
+      <p class="text-primary-400 text-xs">&copy; {% now "Y" %} Guide Bookshop & Stationeries. All rights reserved.</p>
+      <div class="flex items-center gap-2 text-primary-500 text-xs">
+        <i class="fas fa-shield-halved text-primary-600"></i>
+        Secure &amp; Trusted Shopping
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,205 @@
+{% extends 'base_public.html' %}
+{% block title %}Checkout - Guide Bookshop{% endblock %}
+{% block extra_head %}
+<style>
+  .form-input {
+    border: 1px solid #e2f0e2;
+    background: #f8fdf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    outline: none;
+    background: white;
+  }
+  .payment-option:has(input:checked) {
+    border-color: #16a34a;
+    background: #f0fdf4;
+  }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Banner -->
+<div class="relative py-12 overflow-hidden" style="background:linear-gradient(135deg,#052e16,#14532d,#16a34a)">
+  <div class="max-w-7xl mx-auto px-4 relative z-10">
+    <div class="flex items-center gap-2 text-primary-300 text-sm mb-2">
+      <a href="{% url 'landing' %}" class="hover:text-white transition-colors">Home</a>
+      <i class="fas fa-chevron-right text-xs text-primary-500"></i>
+      <a href="{% url 'cart' %}" class="hover:text-white transition-colors">Cart</a>
+      <i class="fas fa-chevron-right text-xs text-primary-500"></i>
+      <span class="text-white font-medium">Checkout</span>
+    </div>
+    <h1 class="font-display text-4xl font-bold text-white">Checkout</h1>
+
+    <!-- Progress Steps -->
+    <div class="flex items-center gap-2 mt-4">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-primary-400 flex items-center justify-center">
+          <i class="fas fa-check text-white text-xs"></i>
+        </div>
+        <span class="text-primary-200 text-xs font-medium">Cart</span>
+      </div>
+      <div class="flex-1 h-px bg-primary-600 max-w-12"></div>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+          <span class="text-primary-800 text-xs font-bold">2</span>
+        </div>
+        <span class="text-white text-xs font-semibold">Checkout</span>
+      </div>
+      <div class="flex-1 h-px bg-primary-700 max-w-12"></div>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-primary-800 flex items-center justify-center">
+          <span class="text-primary-400 text-xs font-bold">3</span>
+        </div>
+        <span class="text-primary-400 text-xs font-medium">Confirmation</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 py-10">
+  <form method="post">
+    {% csrf_token %}
+    <div class="grid lg:grid-cols-3 gap-8">
+
+      <!-- Left: Form -->
+      <div class="lg:col-span-2 space-y-5">
+
+        <!-- Customer Info -->
+        <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+              <i class="fas fa-user text-primary-600 text-sm"></i>
+            </div>
+            <h3 class="font-semibold text-gray-800">Customer Information</h3>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name <span class="text-red-500">*</span></label>
+              <input type="text" name="customer_name" required
+                     {% if user.is_authenticated %}value="{{ user.get_full_name }}"{% endif %}
+                     class="form-input w-full px-4 py-3 rounded-xl text-sm"
+                     placeholder="Enter your full name">
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address <span class="text-red-500">*</span></label>
+                <input type="email" name="customer_email" required
+                       {% if user.is_authenticated %}value="{{ user.email }}"{% endif %}
+                       class="form-input w-full px-4 py-3 rounded-xl text-sm"
+                       placeholder="your@email.com">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number <span class="text-red-500">*</span></label>
+                <input type="text" name="customer_phone" required
+                       class="form-input w-full px-4 py-3 rounded-xl text-sm"
+                       placeholder="+234 xxx xxxx xxxx">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Delivery Address <span class="text-red-500">*</span></label>
+              <textarea name="shipping_address" rows="3" required
+                        class="form-input w-full px-4 py-3 rounded-xl text-sm resize-none"
+                        placeholder="Enter your full delivery address"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+              <i class="fas fa-credit-card text-primary-600 text-sm"></i>
+            </div>
+            <h3 class="font-semibold text-gray-800">Payment Method</h3>
+          </div>
+          <div class="p-6 space-y-3">
+            <label class="payment-option flex items-start gap-4 p-4 border-2 border-sage-200 rounded-2xl cursor-pointer hover:border-primary-300 transition-all">
+              <input type="radio" name="payment_method" value="pay_on_pickup" checked class="mt-0.5 accent-green-600 w-4 h-4">
+              <div>
+                <div class="font-semibold text-gray-800 flex items-center gap-2">
+                  <i class="fas fa-hand-holding-dollar text-primary-500"></i>
+                  Pay on Pickup / Delivery
+                </div>
+                <div class="text-sm text-gray-500 mt-0.5">Pay with cash when you receive your order</div>
+              </div>
+            </label>
+            <label class="payment-option flex items-start gap-4 p-4 border-2 border-sage-200 rounded-2xl cursor-pointer hover:border-primary-300 transition-all">
+              <input type="radio" name="payment_method" value="transfer" class="mt-0.5 accent-green-600 w-4 h-4">
+              <div>
+                <div class="font-semibold text-gray-800 flex items-center gap-2">
+                  <i class="fas fa-building-columns text-primary-500"></i>
+                  Bank Transfer
+                </div>
+                <div class="text-sm text-gray-500 mt-0.5">Transfer to our bank account before delivery</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-white rounded-2xl border border-sage-200 p-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-sticky-note text-primary-400 mr-1.5"></i>Additional Notes
+            <span class="text-gray-400 font-normal">(Optional)</span>
+          </label>
+          <textarea name="notes" rows="2"
+                    placeholder="Any special instructions for your order..."
+                    class="form-input w-full px-4 py-3 rounded-xl text-sm resize-none"></textarea>
+        </div>
+      </div>
+
+      <!-- Right: Order Summary -->
+      <div>
+        <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden sticky top-20">
+          <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#86efac)"></div>
+          <div class="p-6">
+            <h3 class="font-semibold text-gray-800 mb-5 flex items-center gap-2">
+              <i class="fas fa-receipt text-primary-500 text-sm"></i>
+              Order Summary
+            </h3>
+            <div class="space-y-3 mb-5">
+              {% for item in items %}
+              <div class="flex items-center gap-3">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+                  <i class="fas fa-book text-primary-400 text-xs"></i>
+                </div>
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-gray-700 truncate">{{ item.product.name|truncatechars:24 }}</div>
+                  <div class="text-xs text-gray-400">×{{ item.quantity }}</div>
+                </div>
+                <span class="text-sm font-semibold text-gray-800 whitespace-nowrap">&#8358;{{ item.subtotal|currency }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="border-t border-sage-200 pt-4 mb-5">
+              <div class="flex justify-between items-baseline">
+                <span class="font-semibold text-gray-700">Total</span>
+                <span class="font-bold text-xl text-primary-700">&#8358;{{ total|currency }}</span>
+              </div>
+            </div>
+            <button type="submit"
+                    class="w-full text-white py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 hover:-translate-y-0.5"
+                    style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+              <i class="fas fa-check-circle"></i>
+              Place Order
+            </button>
+            <p class="text-xs text-gray-400 text-center mt-3">By placing your order, you agree to our terms &amp; conditions.</p>
+            <div class="flex items-center justify-center gap-3 mt-3 text-xs text-gray-400">
+              <span><i class="fas fa-shield-halved text-primary-400 mr-1"></i>Secure</span>
+              <span>•</span>
+              <span><i class="fas fa-lock text-primary-400 mr-1"></i>Encrypted</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

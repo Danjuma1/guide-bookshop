@@ -1,0 +1,144 @@
+{% extends 'base_admin.html' %}
+{% block title %}{{ supplier.name }} - Supplier{% endblock %}
+{% block page_title %}Supplier Detail{% endblock %}
+{% block content %}
+<div class="max-w-3xl space-y-5">
+
+  <div class="mb-1">
+    <a href="{% url 'supplier_list' %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Suppliers
+    </a>
+  </div>
+
+  <!-- Supplier Info Card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6">
+      <div class="flex items-start justify-between mb-5">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+               style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            {{ supplier.name.0|upper }}
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ supplier.name }}</h2>
+            <div class="flex items-center gap-2 mt-1">
+              {% if supplier.is_active %}
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-700">Active</span>
+              {% else %}
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Inactive</span>
+              {% endif %}
+              <span class="text-xs text-gray-400">Added {{ supplier.created_at|date:"d M Y" }}</span>
+            </div>
+          </div>
+        </div>
+        {% if user_can_write %}
+        <div class="flex items-center gap-2">
+          <a href="{% url 'supplier_edit' supplier.pk %}"
+             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+            <i class="fas fa-pen text-xs"></i> Edit
+          </a>
+          <form method="post" action="{% url 'supplier_delete' supplier.pk %}"
+                onsubmit="return confirm('Delete {{ supplier.name }}? This cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit"
+                    class="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-100">
+              <i class="fas fa-trash text-xs"></i> Delete
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-4 pt-4 border-t border-sage-100">
+        {% if supplier.contact_person %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-user text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Contact Person</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ supplier.contact_person }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if supplier.phone %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-phone text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Phone</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ supplier.phone }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if supplier.email %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-envelope text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Email</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ supplier.email }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% if supplier.address %}
+      <div class="mt-4 pt-4 border-t border-sage-100">
+        <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Address</div>
+        <div class="text-sm text-gray-700">{{ supplier.address }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Products from this supplier -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <i class="fas fa-boxes-stacked text-primary-500 text-sm"></i>
+      <h3 class="font-semibold text-gray-700 text-sm">Products
+        <span class="ml-2 text-xs font-normal text-gray-400">({{ products|length }} product{{ products|length|pluralize }})</span>
+      </h3>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">SKU</th>
+          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Price</th>
+          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Stock</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-sage-50">
+        {% for product in products %}
+        <tr class="hover:bg-sage-50 transition-colors">
+          <td class="px-5 py-3">
+            <a href="{% url 'product_detail' product.pk %}" class="font-semibold text-gray-800 hover:text-primary-700 text-sm">
+              {{ product.name }}
+            </a>
+          </td>
+          <td class="px-5 py-3">
+            <span class="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg">{{ product.sku }}</span>
+          </td>
+          <td class="px-5 py-3 text-right font-semibold text-gray-800">&#8358;{{ product.effective_price|currency }}</td>
+          <td class="px-5 py-3 text-right">
+            <span class="font-bold {% if product.quantity_in_stock == 0 %}text-red-600{% elif product.is_low_stock %}text-orange-500{% else %}text-gray-800{% endif %}">
+              {{ product.quantity_in_stock }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center py-10 text-gray-400 text-sm">No products linked to this supplier</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

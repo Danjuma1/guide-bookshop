@@ -1,0 +1,151 @@
+{% extends 'base_admin.html' %}
+{% block title %}{{ po.po_number }} - Purchase Order{% endblock %}
+{% block page_title %}Purchase Order Detail{% endblock %}
+{% block extra_head %}
+<style>
+  .form-input {
+    border: 1px solid #e2f0e2;
+    background: #f8fdf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+    outline: none;
+    background: white;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl">
+
+  <!-- Header Card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6">
+      <div class="flex items-start justify-between mb-5">
+        <div class="flex items-start gap-3">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+               style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-file-invoice text-primary-600"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800 font-mono tracking-wide">{{ po.po_number }}</h2>
+            <div class="text-gray-500 text-sm mt-0.5">
+              <i class="fas fa-truck text-green-400 mr-1"></i>{{ po.supplier.name|default:"No supplier" }}
+            </div>
+          </div>
+        </div>
+        <span class="px-3 py-1.5 rounded-full text-xs font-bold
+          {% if po.status == 'received' %}
+            text-green-800" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)
+          {% elif po.status == 'sent' %}
+            text-blue-800" style="background:#eff6ff
+          {% else %}
+            text-gray-700" style="background:#f3f4f6
+          {% endif %}">
+          {{ po.get_status_display }}
+        </span>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-4 pt-4 border-t border-sage-100 text-sm">
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Order Date</div>
+          <div class="font-semibold text-gray-800">{{ po.order_date|date:"d M Y" }}</div>
+        </div>
+        {% if po.expected_date %}
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Expected By</div>
+          <div class="font-semibold text-gray-800">{{ po.expected_date|date:"d M Y" }}</div>
+        </div>
+        {% endif %}
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Order Total</div>
+          <div class="text-lg font-bold" style="color:#16a34a">&#8358;{{ po.total_amount|currency }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <i class="fas fa-boxes text-primary-500 text-sm"></i>
+      <h3 class="font-semibold text-gray-700 text-sm">Order Items</h3>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
+          <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Ordered</th>
+          <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Received</th>
+          <th class="text-right px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Unit Cost</th>
+          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-sage-100">
+        {% for item in po.items.all %}
+        <tr class="hover:bg-sage-50 transition-colors">
+          <td class="px-5 py-3.5 font-medium text-gray-800">{{ item.product.name }}</td>
+          <td class="px-4 py-3.5 text-center">
+            <span class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{{ item.quantity_ordered }}</span>
+          </td>
+          <td class="px-4 py-3.5 text-center">
+            {% if item.quantity_received > 0 %}
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold text-green-800"
+                  style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">{{ item.quantity_received }}</span>
+            {% else %}
+            <span class="bg-gray-100 text-gray-400 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3.5 text-right text-gray-600">&#8358;{{ item.unit_cost|currency }}</td>
+          <td class="px-5 py-3.5 text-right font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Receive Stock Form -->
+  {% if po.status != 'received' and po.status != 'cancelled' %}
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#4ade80,#16a34a,#4ade80)"></div>
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <i class="fas fa-boxes text-primary-600 text-xs"></i>
+      </div>
+      <h3 class="font-semibold text-gray-700 text-sm">Receive Stock</h3>
+    </div>
+    <div class="p-6">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="receive">
+        <div class="space-y-3 mb-5">
+          {% for item in po.items.all %}
+          <div class="flex items-center justify-between rounded-xl px-4 py-3 border border-sage-100"
+               style="background:linear-gradient(135deg,#f8fdf8,#f0fdf4)">
+            <div>
+              <span class="text-sm font-semibold text-gray-800">{{ item.product.name }}</span>
+              <span class="text-xs text-gray-400 ml-2">Ordered: {{ item.quantity_ordered }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-gray-500">Receiving:</span>
+              <input type="number" name="received_{{ item.pk }}"
+                     min="0" max="{{ item.quantity_ordered }}" value="{{ item.quantity_ordered }}"
+                     class="form-input w-24 border border-sage-200 rounded-xl px-3 py-2 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="submit"
+                class="text-white px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center gap-2 shadow-lg"
+                style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+          <i class="fas fa-check-double"></i> Confirm Stock Received
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

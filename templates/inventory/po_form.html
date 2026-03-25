@@ -1,0 +1,158 @@
+{% extends 'base_admin.html' %}
+{% block title %}New Purchase Order{% endblock %}
+{% block page_title %}New Purchase Order{% endblock %}
+{% block extra_head %}
+<style>
+  .form-input {
+    border: 1px solid #e2f0e2;
+    background: #f8fdf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+    outline: none;
+    background: white;
+  }
+  .item-row {
+    background: linear-gradient(135deg, #f8fdf8, #f0fdf4);
+    border: 1px solid #e2f0e2;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s;
+  }
+  .item-row:hover { border-color: #86efac; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl">
+<form method="post">
+  {% csrf_token %}
+
+  <div class="grid md:grid-cols-2 gap-5 mb-5">
+    <!-- Order Details Card -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+      <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-file-alt text-primary-600 text-xs"></i>
+        </div>
+        <h3 class="font-semibold text-gray-700 text-sm">Order Details</h3>
+      </div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Supplier <span class="text-red-500">*</span></label>
+          <select name="supplier" required class="form-input w-full px-4 py-3 rounded-xl text-sm">
+            <option value="">Select supplier...</option>
+            {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Expected Delivery</label>
+          <input type="date" name="expected_date" class="form-input w-full px-4 py-3 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea name="notes" rows="3"
+                    class="form-input w-full px-4 py-3 rounded-xl text-sm resize-none"
+                    placeholder="Any additional notes about this order..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Summary Panel -->
+    <div class="rounded-2xl p-5 flex flex-col justify-center items-center text-center border border-sage-200"
+         style="background:linear-gradient(135deg,#052e16,#0a3520,#14532d)">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+           style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3)">
+        <i class="fas fa-shopping-cart text-green-300 text-xl"></i>
+      </div>
+      <div class="text-green-300 text-sm font-medium mb-1">Purchase Order</div>
+      <div class="text-white font-display text-2xl font-bold mb-3">New Order</div>
+      <div class="text-green-400 text-xs leading-relaxed">
+        Add items below then click<br>"Create Purchase Order" to submit
+      </div>
+      <div class="mt-4 text-green-200 text-xs opacity-60">
+        <i class="fas fa-shield-alt mr-1"></i>Stock will be updated upon receipt
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Items Card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-boxes text-primary-600 text-xs"></i>
+        </div>
+        <h3 class="font-semibold text-gray-700 text-sm">Order Items</h3>
+      </div>
+      <button type="button" onclick="addRow()"
+              class="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
+              style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d">
+        <i class="fas fa-plus"></i> Add Item
+      </button>
+    </div>
+    <div class="p-5">
+      <!-- Column headers -->
+      <div class="grid grid-cols-12 gap-3 text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3 px-1">
+        <div class="col-span-5">Product</div>
+        <div class="col-span-3">Quantity</div>
+        <div class="col-span-3">Unit Cost (&#8358;)</div>
+        <div class="col-span-1"></div>
+      </div>
+      <div id="items-container" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <div class="flex gap-3">
+    <button type="submit"
+            class="text-white px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center gap-2"
+            style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+      <i class="fas fa-file-invoice"></i> Create Purchase Order
+    </button>
+    <a href="{% url 'po_list' %}"
+       class="bg-sage-100 text-gray-700 px-8 py-3.5 rounded-2xl font-semibold text-sm hover:bg-sage-200 transition-colors border border-sage-200">
+      Cancel
+    </a>
+  </div>
+</form>
+</div>
+
+<script>
+const products = [{% for p in products %}{ id: {{ p.id }}, name: '{{ p.name|escapejs }}', sku: '{{ p.sku }}' },{% endfor %}];
+
+function addRow() {
+  const container = document.getElementById('items-container');
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.style.cssText = 'display:grid;grid-template-columns:repeat(12,1fr);gap:0.75rem;align-items:center';
+  const opts = products.map(p => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join('');
+  div.innerHTML = `
+    <div style="grid-column:span 5">
+      <select name="product_id" style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+        <option value="">Select product...</option>${opts}
+      </select>
+    </div>
+    <div style="grid-column:span 3">
+      <input type="number" name="quantity" min="1" placeholder="Qty"
+             style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+    </div>
+    <div style="grid-column:span 3">
+      <input type="number" name="unit_cost" step="0.01" placeholder="0.00"
+             style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+    </div>
+    <div style="grid-column:span 1;text-align:center">
+      <button type="button" onclick="this.closest('.item-row').remove()"
+              style="color:#f87171;background:none;border:none;cursor:pointer;font-size:1rem;padding:4px">
+        <i class="fas fa-times-circle"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+addRow();
+</script>
+{% endblock %}

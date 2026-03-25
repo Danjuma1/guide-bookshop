@@ -1,0 +1,140 @@
+{% extends 'base_admin.html' %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+{% block content %}
+<div class="max-w-3xl space-y-5">
+
+  <div class="mb-1">
+    <a href="{% url 'customer_list' %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Customers
+    </a>
+  </div>
+
+  <!-- Profile Card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6">
+      <div class="flex items-start justify-between mb-5">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+               style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            {{ customer.name.0|upper }}
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ customer.name }}</h2>
+            <div class="text-sm text-primary-600 font-medium mt-0.5">Customer since {{ customer.created_at|date:"d M Y" }}</div>
+          </div>
+        </div>
+        {% if user_can_write %}
+        <div class="flex items-center gap-2">
+          <a href="{% url 'customer_edit' customer.pk %}"
+             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+            <i class="fas fa-pen text-xs"></i> Edit
+          </a>
+          <form method="post" action="{% url 'customer_delete' customer.pk %}"
+                onsubmit="return confirm('Delete {{ customer.name }}? This cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit"
+                    class="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-100">
+              <i class="fas fa-trash text-xs"></i> Delete
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-4 pt-4 border-t border-sage-100">
+        {% if customer.phone %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-phone text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Phone</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ customer.phone }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if customer.email %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-envelope text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Email</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ customer.email }}</div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-naira-sign text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Total Spent</div>
+            <div class="font-bold text-primary-700 text-sm">&#8358;{{ total_spent|currency }}</div>
+          </div>
+        </div>
+      </div>
+      {% if customer.address %}
+      <div class="mt-4 pt-4 border-t border-sage-100">
+        <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Address</div>
+        <div class="text-sm text-gray-700">{{ customer.address }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Purchase History -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <i class="fas fa-receipt text-primary-500 text-sm"></i>
+      <h3 class="font-semibold text-gray-700 text-sm">Purchase History
+        <span class="ml-2 text-xs font-normal text-gray-400">({{ sales|length }} sale{{ sales|length|pluralize }})</span>
+      </h3>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Invoice</th>
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Items</th>
+          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Amount</th>
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Payment</th>
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Date</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-sage-50">
+        {% for sale in sales %}
+        <tr class="hover:bg-sage-50 transition-colors">
+          <td class="px-5 py-3">
+            <a href="{% url 'sale_detail' sale.pk %}" class="font-semibold text-primary-600 hover:text-primary-800 text-sm">
+              {{ sale.invoice_number }}
+            </a>
+          </td>
+          <td class="px-5 py-3">
+            <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-0.5 rounded-lg">{{ sale.items.count }}</span>
+          </td>
+          <td class="px-5 py-3 text-right font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</td>
+          <td class="px-5 py-3">
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+              {% if sale.payment_method == 'cash' %}bg-green-50 text-green-700
+              {% elif sale.payment_method == 'card' %}bg-blue-50 text-blue-700
+              {% else %}bg-purple-50 text-purple-700{% endif %}">
+              {{ sale.get_payment_method_display }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-xs text-gray-400">{{ sale.sale_date|date:"d M Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center py-10 text-gray-400 text-sm">No purchases yet</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

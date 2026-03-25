@@ -1,0 +1,127 @@
+{% extends 'base_public.html' %}
+{% block title %}Shopping Cart - Guide Bookshop{% endblock %}
+{% block content %}
+
+<!-- Banner -->
+<div class="relative py-12 overflow-hidden" style="background:linear-gradient(135deg,#052e16,#14532d,#16a34a)">
+  <div class="max-w-7xl mx-auto px-4 relative z-10">
+    <div class="flex items-center gap-2 text-primary-300 text-sm mb-2">
+      <a href="{% url 'landing' %}" class="hover:text-white transition-colors">Home</a>
+      <i class="fas fa-chevron-right text-xs text-primary-500"></i>
+      <a href="{% url 'shop_home' %}" class="hover:text-white transition-colors">Shop</a>
+      <i class="fas fa-chevron-right text-xs text-primary-500"></i>
+      <span class="text-white font-medium">Cart</span>
+    </div>
+    <h1 class="font-display text-4xl font-bold text-white">Shopping Cart</h1>
+    {% if items %}<p class="text-primary-200 mt-1">{{ items|length }} item{{ items|length|pluralize }} in your cart</p>{% endif %}
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 py-10">
+  {% if items %}
+  <div class="grid lg:grid-cols-3 gap-8">
+
+    <!-- Cart Items -->
+    <div class="lg:col-span-2 space-y-4">
+      {% for item in items %}
+      <div class="bg-white rounded-2xl border border-sage-200 p-4 flex gap-4 items-start hover:border-primary-200 transition-colors">
+        <a href="{% url 'shop_product_detail' item.product.slug %}" class="flex-shrink-0">
+          {% if item.product.image %}
+          <img src="{{ item.product.image.url }}" class="w-24 h-24 object-cover rounded-xl">
+          {% else %}
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-book text-primary-400 text-2xl"></i>
+          </div>
+          {% endif %}
+        </a>
+        <div class="flex-1 min-w-0">
+          <a href="{% url 'shop_product_detail' item.product.slug %}" class="font-semibold text-gray-800 hover:text-primary-700 line-clamp-1 block text-sm transition-colors">{{ item.product.name }}</a>
+          {% if item.product.author %}<div class="text-xs text-gray-400 mb-1">by {{ item.product.author }}</div>{% endif %}
+          {% if item.product.category %}<div class="inline-flex text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full font-medium mb-2">{{ item.product.category.name }}</div>{% endif %}
+          <div class="text-primary-700 font-bold">&#8358;{{ item.product.effective_price|currency }}</div>
+        </div>
+        <div class="flex flex-col items-end gap-3">
+          <form method="post" action="{% url 'update_cart' item.pk %}" class="flex items-center gap-2">
+            {% csrf_token %}
+            <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
+                    class="w-8 h-8 bg-sage-100 rounded-xl text-sm font-bold hover:bg-primary-100 hover:text-primary-700 flex items-center justify-center transition-colors">−</button>
+            <span class="w-8 text-center font-bold text-gray-800 text-sm">{{ item.quantity }}</span>
+            <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
+                    class="w-8 h-8 rounded-xl text-sm font-bold flex items-center justify-center text-white transition-all hover:scale-110"
+                    style="background:linear-gradient(135deg,#16a34a,#14532d)">+</button>
+          </form>
+          <div class="text-right">
+            <div class="font-bold text-gray-800 text-sm">&#8358;{{ item.subtotal|currency }}</div>
+            <a href="{% url 'remove_from_cart' item.pk %}" class="text-xs text-red-400 hover:text-red-600 transition-colors mt-1 inline-flex items-center gap-1">
+              <i class="fas fa-trash text-xs"></i> Remove
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="flex items-center justify-between pt-2">
+        <a href="{% url 'shop_home' %}" class="flex items-center gap-2 text-primary-600 font-medium text-sm hover:text-primary-800 transition-colors group">
+          <i class="fas fa-arrow-left text-xs group-hover:-translate-x-1 transition-transform"></i>
+          Continue Shopping
+        </a>
+      </div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden sticky top-20">
+        <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#86efac)"></div>
+        <div class="p-6">
+          <h3 class="font-semibold text-gray-800 mb-5 flex items-center gap-2">
+            <i class="fas fa-receipt text-primary-500 text-sm"></i>
+            Order Summary
+          </h3>
+          <div class="space-y-2.5 mb-5">
+            {% for item in items %}
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500 truncate mr-2">{{ item.product.name|truncatechars:22 }} <span class="text-gray-400">×{{ item.quantity }}</span></span>
+              <span class="text-gray-700 font-medium whitespace-nowrap">&#8358;{{ item.subtotal|currency }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="border-t border-sage-200 pt-4 mb-5">
+            <div class="flex justify-between items-baseline">
+              <span class="font-semibold text-gray-700">Total</span>
+              <span class="font-bold text-xl text-primary-700">&#8358;{{ total|currency }}</span>
+            </div>
+          </div>
+          <a href="{% url 'checkout' %}"
+             class="w-full text-white py-3.5 rounded-2xl font-bold text-sm text-center transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg"
+             style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+            <i class="fas fa-lock text-xs"></i>
+            Proceed to Checkout
+          </a>
+          <div class="flex items-center justify-center gap-3 mt-4 text-xs text-gray-400">
+            <span><i class="fas fa-shield-halved text-primary-400 mr-1"></i>Secure Checkout</span>
+            <span>•</span>
+            <span><i class="fas fa-lock text-primary-400 mr-1"></i>SSL Encrypted</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Empty Cart -->
+  <div class="flex flex-col items-center justify-center py-24 text-center">
+    <div class="w-28 h-28 rounded-3xl flex items-center justify-center mb-6" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+      <i class="fas fa-shopping-bag text-5xl text-primary-400"></i>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-3">Your cart is empty</h2>
+    <p class="text-gray-500 mb-8 max-w-xs">Looks like you haven't added any items yet. Start exploring our collection!</p>
+    <a href="{% url 'shop_home' %}"
+       class="inline-flex items-center gap-2.5 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+       style="background:linear-gradient(135deg,#16a34a,#14532d)">
+      <i class="fas fa-store"></i>
+      Start Shopping
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

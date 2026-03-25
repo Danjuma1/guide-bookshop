@@ -1,0 +1,133 @@
+{% extends 'base_admin.html' %}
+{% block title %}{{ sale.invoice_number }}{% endblock %}
+{% block page_title %}Sale Detail{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+
+  <!-- Back Button -->
+  <div class="mb-4">
+    <a href="{% url 'sale_list' %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Sales History
+    </a>
+  </div>
+
+  <!-- Header Card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6">
+      <div class="flex justify-between items-start mb-5">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+              <i class="fas fa-receipt text-primary-600 text-sm"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 font-mono tracking-wide">{{ sale.invoice_number }}</h2>
+          </div>
+          <div class="text-gray-400 text-sm ml-13 pl-1">
+            <i class="fas fa-clock mr-1"></i>{{ sale.sale_date|date:"d M Y, H:i" }}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold"
+                style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d">
+            {{ sale.get_status_display }}
+          </span>
+          <a href="{% url 'sale_receipt' sale.pk %}" target="_blank"
+             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             style="background:linear-gradient(135deg,#111,#374151)">
+            <i class="fas fa-receipt"></i> Receipt
+          </a>
+          <a href="{% url 'sale_invoice' sale.pk %}"
+             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+            <i class="fas fa-file-invoice"></i> Invoice
+          </a>
+        </div>
+      </div>
+
+      <!-- Meta info -->
+      <div class="grid sm:grid-cols-3 gap-4 pt-4 border-t border-sage-100">
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-user text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Customer</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ sale.customer.name|default:"Walk-in Customer" }}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-credit-card text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Payment</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ sale.get_payment_method_display }}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center mt-0.5" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-user-tie text-primary-600 text-xs"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Served by</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ sale.served_by.get_full_name|default:sale.served_by.username }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <i class="fas fa-shopping-bag text-primary-500 text-sm"></i>
+      <h3 class="font-semibold text-gray-700 text-sm">Items Purchased</h3>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
+          <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Qty</th>
+          <th class="text-right px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Unit Price</th>
+          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-sage-100">
+        {% for item in sale.items.all %}
+        <tr class="hover:bg-sage-50 transition-colors">
+          <td class="px-5 py-3.5 font-medium text-gray-800">{{ item.product.name }}</td>
+          <td class="px-4 py-3.5 text-center">
+            <span class="bg-sage-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">{{ item.quantity }}</span>
+          </td>
+          <td class="px-4 py-3.5 text-right text-gray-600">&#8358;{{ item.unit_price|currency }}</td>
+          <td class="px-5 py-3.5 text-right font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="px-5 py-4 border-t border-sage-100 space-y-2">
+      <div class="flex justify-between text-sm text-gray-500">
+        <span>Subtotal</span>
+        <span class="text-gray-800">&#8358;{{ sale.subtotal|currency }}</span>
+      </div>
+      {% if sale.discount_amount %}
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Discount</span>
+        <span class="text-red-500 font-medium">-&#8358;{{ sale.discount_amount|currency }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between items-center pt-2 border-t border-sage-100">
+        <span class="font-bold text-gray-800 text-base">Total</span>
+        <span class="text-xl font-bold" style="background:linear-gradient(135deg,#16a34a,#14532d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+          &#8358;{{ sale.total_amount|currency }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

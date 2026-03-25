@@ -1,0 +1,86 @@
+{% extends 'base_admin.html' %}
+{% block title %}{% if expense %}Edit{% else %}Add{% endif %} Expense{% endblock %}
+{% block page_title %}{% if expense %}Edit{% else %}Add{% endif %} Expense{% endblock %}
+{% block extra_head %}
+<style>
+  .form-input {
+    border: 1px solid #e2f0e2;
+    background: #f8fdf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+    outline: none;
+    background: white;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#ef4444,#f97316,#eab308)"></div>
+    <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-red-50">
+        <i class="fas fa-receipt text-red-500 text-xs"></i>
+      </div>
+      <h3 class="font-semibold text-gray-800">Expense Details</h3>
+    </div>
+    <div class="p-6">
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Title <span class="text-red-500">*</span></label>
+          <input type="text" name="title" value="{{ expense.title|default:'' }}" required
+                 class="form-input w-full px-4 py-3 rounded-xl text-sm"
+                 placeholder="e.g. Monthly rent, Staff salary...">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+            <select name="category" class="form-input w-full px-4 py-3 rounded-xl text-sm">
+              <option value="rent" {% if expense.category == 'rent' %}selected{% endif %}>🏠 Rent</option>
+              <option value="utilities" {% if expense.category == 'utilities' %}selected{% endif %}>💡 Utilities</option>
+              <option value="salary" {% if expense.category == 'salary' %}selected{% endif %}>👤 Salary</option>
+              <option value="supplies" {% if expense.category == 'supplies' %}selected{% endif %}>🖊️ Office Supplies</option>
+              <option value="maintenance" {% if expense.category == 'maintenance' %}selected{% endif %}>🔧 Maintenance</option>
+              <option value="marketing" {% if expense.category == 'marketing' %}selected{% endif %}>📣 Marketing</option>
+              <option value="transport" {% if expense.category == 'transport' %}selected{% endif %}>🚗 Transport</option>
+              <option value="other" {% if expense.category == 'other' or not expense %}selected{% endif %}>📋 Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (&#8358;) <span class="text-red-500">*</span></label>
+            <input type="number" name="amount" step="0.01" value="{{ expense.amount|default:'' }}" required
+                   class="form-input w-full px-4 py-3 rounded-xl text-sm"
+                   placeholder="0.00">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+          <input type="date" name="expense_date"
+                 value="{{ expense.expense_date|date:'Y-m-d'|default:'' }}"
+                 class="form-input w-full px-4 py-3 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+          <textarea name="description" rows="3"
+                    class="form-input w-full px-4 py-3 rounded-xl text-sm resize-none"
+                    placeholder="Additional notes about this expense...">{{ expense.description|default:'' }}</textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit"
+                  class="flex-1 text-white py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                  style="background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 4px 15px rgba(239,68,68,0.3)">
+            <i class="fas fa-save"></i> {% if expense %}Save Changes{% else %}Save Expense{% endif %}
+          </button>
+          <a href="{% url 'expense_list' %}"
+             class="flex-1 bg-sage-100 text-gray-700 py-3.5 rounded-2xl font-semibold text-sm text-center hover:bg-sage-200 transition-colors border border-sage-200">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

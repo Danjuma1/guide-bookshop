@@ -1,0 +1,286 @@
+{% load custom_filters %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Guide Bookshop ERP{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50:'#f0fdf4', 100:'#dcfce7', 200:'#bbf7d0', 300:'#86efac', 400:'#4ade80', 500:'#22c55e', 600:'#16a34a', 700:'#15803d', 800:'#166534', 900:'#14532d', 950:'#052e16' },
+            sage: { 50:'#f8fdf8', 100:'#f1f8f1', 200:'#e2f0e2' },
+            emerald: { 500:'#10b981', 600:'#059669' },
+          },
+          fontFamily: { display: ['Playfair Display', 'serif'], body: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #f0fdf4; }
+    ::-webkit-scrollbar-thumb { background: #86efac; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #16a34a; }
+
+    /* Sidebar nav links */
+    .sidebar-link {
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-link:hover {
+      background: rgba(74,222,128,0.1);
+      border-left-color: rgba(74,222,128,0.5);
+    }
+    .sidebar-link.active {
+      background: rgba(74,222,128,0.15);
+      border-left-color: #4ade80;
+      color: #ffffff !important;
+    }
+    .sidebar-link.active i { color: #4ade80 !important; }
+
+    /* Section labels */
+    .sidebar-section {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      color: #4ade80;
+      opacity: 0.7;
+      text-transform: uppercase;
+      padding: 16px 14px 4px;
+    }
+
+    /* Stat cards */
+    .stat-card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(22,163,74,0.06);
+      border: 1px solid #e2f0e2;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .stat-card:hover {
+      box-shadow: 0 4px 20px rgba(22,163,74,0.14);
+      transform: translateY(-2px);
+    }
+
+    /* Top bar */
+    .topbar { background: white; border-bottom: 1px solid #e2f0e2; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-sage-100 font-body min-h-screen flex">
+
+<!-- Sidebar -->
+<aside id="sidebar"
+  class="w-64 flex-shrink-0 fixed top-0 left-0 z-40 flex flex-col min-h-screen transition-transform duration-300 lg:translate-x-0 -translate-x-full"
+  style="background:linear-gradient(180deg,#052e16 0%,#0a3520 50%,#0d3d22 100%);height:100vh;overflow-y:auto">
+
+  <!-- Logo -->
+  <div class="px-5 py-5 border-b" style="border-color:rgba(74,222,128,0.15)">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
+           style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        <i class="fas fa-book-open text-white text-base"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-sm leading-tight">Guide Bookshop</div>
+        <div class="text-xs font-medium leading-tight" style="color:#4ade80;opacity:0.8">ERP System</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- User Profile -->
+  <div class="px-4 py-4 border-b" style="border-color:rgba(74,222,128,0.1)">
+    <div class="flex items-center gap-3 p-3 rounded-xl" style="background:rgba(74,222,128,0.08)">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+           style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+        {{ user.first_name.0|default:user.username.0|upper }}
+      </div>
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-white truncate">{{ user.get_full_name|default:user.username }}</div>
+        <div class="text-xs truncate" style="color:#86efac">{% if user.staff_profile %}{{ user.staff_profile.get_role_display }}{% else %}Staff{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 px-3 py-3">
+    {% with un=request.resolver_match.url_name %}
+
+    {% if user_is_admin %}
+    <a href="{% url 'dashboard' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'dashboard' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-home w-4 text-center text-green-400 text-xs"></i>
+      <span>Dashboard</span>
+    </a>
+    {% endif %}
+
+    {% if user_modules.pos or user_modules.sales or user_modules.customers or user_modules.expenses %}
+    <div class="sidebar-section">Sales</div>
+    {% if user_modules.pos %}
+    <a href="{% url 'pos' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'pos' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-cash-register w-4 text-center text-green-400 text-xs"></i><span>Point of Sale</span>
+    </a>
+    {% endif %}
+    {% if user_modules.sales %}
+    <a href="{% url 'sale_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'sale_list,sale_detail,sale_invoice,sale_receipt,new_sale' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-receipt w-4 text-center text-green-400 text-xs"></i><span>Sales History</span>
+    </a>
+    {% endif %}
+    {% if user_modules.customers %}
+    <a href="{% url 'customer_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'customer_list,customer_add,customer_detail,customer_edit' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-users w-4 text-center text-green-400 text-xs"></i><span>Customers</span>
+    </a>
+    {% endif %}
+    {% if user_modules.expenses %}
+    <a href="{% url 'expense_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'expense_list,expense_add,expense_edit' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-wallet w-4 text-center text-green-400 text-xs"></i><span>Expenses</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if user_modules.inventory %}
+    <div class="sidebar-section">Inventory</div>
+    <a href="{% url 'product_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'product_list,product_add,product_detail,product_edit,adjust_stock' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-boxes-stacked w-4 text-center text-green-400 text-xs"></i><span>Products</span>
+    </a>
+    <a href="{% url 'category_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'category_list,category_add,category_edit' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-tags w-4 text-center text-green-400 text-xs"></i><span>Categories</span>
+    </a>
+    <a href="{% url 'supplier_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'supplier_list,supplier_add,supplier_edit,supplier_detail' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-truck w-4 text-center text-green-400 text-xs"></i><span>Suppliers</span>
+    </a>
+    <a href="{% url 'po_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'po_list,po_add,po_detail' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-file-invoice w-4 text-center text-green-400 text-xs"></i><span>Purchase Orders</span>
+    </a>
+    <a href="{% url 'low_stock_report' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'low_stock_report' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-triangle-exclamation w-4 text-center text-yellow-400 text-xs"></i><span>Low Stock</span>
+    </a>
+    <a href="{% url 'stock_movement_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'stock_movement_list' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-arrow-right-arrow-left w-4 text-center text-green-400 text-xs"></i><span>Stock Movements</span>
+    </a>
+    {% endif %}
+
+    {% if user_modules.online_orders %}
+    <div class="sidebar-section">Online Store</div>
+    <a href="{% url 'manage_orders' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'manage_orders,update_order_status' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-globe w-4 text-center text-green-400 text-xs"></i><span>Online Orders</span>
+    </a>
+    {% endif %}
+
+    {% if user_modules.imports %}
+    <div class="sidebar-section">Import Data</div>
+    <a href="{% url 'import_products' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'import_products' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-file-import w-4 text-center text-green-400 text-xs"></i><span>Import Products</span>
+    </a>
+    <a href="{% url 'import_suppliers' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'import_suppliers' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-file-import w-4 text-center text-green-400 text-xs"></i><span>Import Suppliers</span>
+    </a>
+    <a href="{% url 'import_customers' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'import_customers' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-file-import w-4 text-center text-green-400 text-xs"></i><span>Import Customers</span>
+    </a>
+    {% endif %}
+
+    {% if user_modules.reports or user_modules.staff or user_is_admin %}
+    <div class="sidebar-section">Reports & Admin</div>
+    {% if user_modules.reports %}
+    <a href="{% url 'reports' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'reports' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-chart-bar w-4 text-center text-green-400 text-xs"></i><span>Reports</span>
+    </a>
+    {% endif %}
+    {% if user_modules.staff %}
+    <a href="{% url 'staff_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'staff_list,staff_add,staff_edit,profile' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-user-tie w-4 text-center text-green-400 text-xs"></i><span>Staff</span>
+    </a>
+    {% endif %}
+    {% if user_is_admin %}
+    <a href="/admin/" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 text-green-200">
+      <i class="fas fa-shield-halved w-4 text-center text-green-400 text-xs"></i><span>Django Admin</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% endwith %}
+  </nav>
+
+  <!-- Footer Links -->
+  <div class="px-3 py-4 border-t space-y-0.5" style="border-color:rgba(74,222,128,0.12)">
+    {% if user_can_view_store %}
+    <a href="{% url 'landing' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-300">
+      <i class="fas fa-store w-4 text-center text-green-500 text-xs"></i><span>View Store</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'logout' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-300 hover:text-red-300">
+      <i class="fas fa-right-from-bracket w-4 text-center text-green-500 text-xs"></i><span>Logout</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Mobile overlay -->
+<div id="overlay" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+<!-- Main Content -->
+<div class="flex-1 lg:ml-64 min-h-screen flex flex-col">
+
+  <!-- Top Bar -->
+  <header class="topbar h-14 flex items-center px-4 lg:px-6 sticky top-0 z-20">
+    <button onclick="toggleSidebar()" class="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-sage-100 mr-3 transition-all">
+      <i class="fas fa-bars text-lg"></i>
+    </button>
+    <div class="flex-1">
+      <h1 class="text-gray-800 font-semibold text-base">{% block page_title %}Dashboard{% endblock %}</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'pos' %}" class="hidden sm:flex items-center gap-2 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+         style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 2px 8px rgba(22,163,74,0.3)">
+        <i class="fas fa-cash-register text-xs"></i>
+        <span>Open POS</span>
+      </a>
+      <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sage-100">
+        <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+             style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+          {{ user.first_name.0|default:user.username.0|upper }}
+        </div>
+        <span class="text-gray-600 text-sm font-medium">{{ user.get_full_name|default:user.username }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  {% if messages %}
+  <div class="px-4 lg:px-6 pt-4 space-y-2">
+    {% for message in messages %}
+    <div class="flex items-center gap-3 p-3.5 rounded-xl border text-sm font-medium
+      {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200
+      {% elif message.tags == 'success' %}bg-primary-50 text-primary-900 border-primary-200
+      {% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+      <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation text-red-500{% elif message.tags == 'success' %}fa-circle-check text-primary-600{% else %}fa-circle-info text-blue-500{% endif %}"></i>
+      <span class="flex-1">{{ message }}</span>
+      <button onclick="this.parentElement.remove()" class="ml-auto opacity-50 hover:opacity-100 transition-opacity">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main class="flex-1 p-4 lg:p-6">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  sidebar.classList.toggle('-translate-x-full');
+  overlay.classList.toggle('hidden');
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

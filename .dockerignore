@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+db.sqlite3
+.env
+.git/
+.gitignore
+.dockerignore
+staticfiles/
+media/
+*.md
+seed_data.py

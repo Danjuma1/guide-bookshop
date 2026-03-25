@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Receipt {{ sale.invoice_number }}</title>
+  <style>
+    /* === Thermal Receipt: 80mm paper width === */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #000;
+      background: #fff;
+      width: 302px;          /* 80mm ≈ 302px at 96dpi */
+      margin: 0 auto;
+      padding: 8px 10px;
+    }
+
+    /* Print: no margins, fill full receipt width */
+    @media print {
+      @page { size: 80mm auto; margin: 0; }
+      body { margin: 0; padding: 6px 8px; width: 100%; }
+      .no-print { display: none !important; }
+    }
+
+    /* ---- Layout helpers ---- */
+    .center  { text-align: center; }
+    .right   { text-align: right; }
+    .left    { text-align: left; }
+    .bold    { font-weight: bold; }
+    .small   { font-size: 10px; }
+    .large   { font-size: 15px; }
+    .xlarge  { font-size: 18px; }
+
+    /* Dividers */
+    .divider-solid { border-top: 1px solid #000; margin: 5px 0; }
+    .divider-dash  { border-top: 1px dashed #555; margin: 5px 0; }
+
+    /* Header */
+    .shop-name {
+      font-size: 17px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .tagline {
+      font-size: 10px;
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    /* Items table */
+    table { width: 100%; border-collapse: collapse; }
+    .items-header td {
+      font-weight: bold;
+      font-size: 11px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      padding-top: 2px;
+    }
+    .item-row td { padding: 2px 0; vertical-align: top; font-size: 11px; }
+    .item-name { width: 55%; }
+    .item-qty  { width: 10%; text-align: center; }
+    .item-price{ width: 17%; text-align: right; }
+    .item-total{ width: 18%; text-align: right; }
+
+    /* Totals */
+    .totals-row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 12px; }
+    .totals-row.grand { font-size: 15px; font-weight: bold; padding-top: 4px; }
+
+    /* Barcode-style pattern (decorative) */
+    .barcode-dec {
+      height: 14px;
+      background: repeating-linear-gradient(90deg, #000 0px, #000 2px, #fff 2px, #fff 4px, #000 4px, #000 5px, #fff 5px, #fff 8px, #000 8px, #000 9px, #fff 9px, #fff 12px);
+      margin: 6px 0;
+      border-radius: 1px;
+    }
+
+    /* Thank-you box */
+    .thankyou {
+      border: 2px solid #000;
+      padding: 5px 8px;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* Screen preview card */
+    .screen-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      background: #e5e7eb;
+      padding: 20px;
+    }
+    .receipt-card {
+      background: white;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      padding: 10px;
+    }
+    @media print {
+      .screen-wrapper { display: block; min-height: auto; background: none; padding: 0; }
+      .receipt-card   { box-shadow: none; padding: 0; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="screen-wrapper no-print-wrapper">
+  <div>
+    <!-- Action bar — screen only -->
+    <div class="no-print" style="max-width:340px;margin:0 auto 12px;display:flex;gap:10px;">
+      <button onclick="window.print()"
+              style="flex:1;background:#000;color:#fff;border:none;padding:10px;font-weight:bold;cursor:pointer;border-radius:6px;font-size:13px;">
+        &#128424; Print Receipt
+      </button>
+      <button onclick="window.close()"
+              style="padding:10px 18px;background:#e5e7eb;border:none;cursor:pointer;border-radius:6px;font-size:13px;font-weight:bold;">
+        Close
+      </button>
+    </div>
+
+    <!-- Receipt body -->
+    <div class="receipt-card" style="width:302px;">
+
+      <!-- Shop Header -->
+      <div style="margin-bottom:4px;">
+        <div class="shop-name">
+          {% if site_settings and site_settings.logo %}
+          <img src="{{ site_settings.logo.url }}" alt="logo" style="height:32px;display:block;margin:0 auto 3px;">
+          {% endif %}
+          {% if site_settings %}{{ site_settings.shop_name }}{% else %}GUIDE BOOKSHOP{% endif %}
+        </div>
+        <div class="tagline">{% if site_settings %}{{ site_settings.tagline }}{% else %}& Stationeries{% endif %}</div>
+        {% if site_settings %}
+        <div class="center small">{{ site_settings.address }}</div>
+        <div class="center small">Tel: {{ site_settings.phone }}</div>
+        {% endif %}
+      </div>
+
+      <div class="divider-solid"></div>
+
+      <!-- Receipt Info -->
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+        <span><span class="bold">DATE:</span> {{ sale.sale_date|date:"d/m/Y H:i" }}</span>
+        <span><span class="bold">CASHIER:</span> {{ sale.served_by.get_full_name|default:sale.served_by.username }}</span>
+      </div>
+      <div style="font-size:11px;margin-bottom:1px;">
+        <span class="bold">RECEIPT#:</span> {{ sale.invoice_number }}
+      </div>
+      {% if sale.customer %}
+      <div style="font-size:11px;">
+        <span class="bold">CUSTOMER:</span> {{ sale.customer.name }}
+      </div>
+      {% endif %}
+
+      <div class="divider-dash"></div>
+
+      <!-- Items -->
+      <table>
+        <tr class="items-header">
+          <td class="item-name">ITEM</td>
+          <td class="item-qty">QTY</td>
+          <td class="item-price">PRICE</td>
+          <td class="item-total">AMT</td>
+        </tr>
+        {% for item in sale.items.all %}
+        <tr class="item-row">
+          <td class="item-name" style="padding-right:3px;">{{ item.product.name|truncatechars:22 }}</td>
+          <td class="item-qty">{{ item.quantity }}</td>
+          <td class="item-price">{{ item.unit_price|currency }}</td>
+          <td class="item-total">{{ item.subtotal|currency }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <div class="divider-dash"></div>
+
+      <!-- Totals -->
+      <div class="totals-row"><span>SUBTOTAL</span><span>&#8358;{{ sale.subtotal|floatformat:2|intcomma }}</span></div>
+      {% if sale.discount_amount %}
+      <div class="totals-row"><span>DISCOUNT</span><span>-&#8358;{{ sale.discount_amount|floatformat:2|intcomma }}</span></div>
+      {% endif %}
+      <div class="divider-solid"></div>
+      <div class="totals-row grand"><span>TOTAL</span><span>&#8358;{{ sale.total_amount|floatformat:2|intcomma }}</span></div>
+      <div class="totals-row" style="font-size:11px;margin-top:3px;">
+        <span>PAYMENT</span><span>{{ sale.get_payment_method_display|upper }}</span>
+      </div>
+
+      <div class="divider-dash"></div>
+
+      <!-- Barcode decoration -->
+      <div class="barcode-dec"></div>
+      <div class="center small" style="letter-spacing:4px;margin-bottom:4px;">{{ sale.invoice_number }}</div>
+
+      <!-- Thank you -->
+      <div class="thankyou">
+        <div class="bold" style="font-size:13px;">THANK YOU!</div>
+        <div class="small">Please come again.</div>
+        {% if site_settings and site_settings.whatsapp_number %}
+        <div class="small" style="margin-top:2px;">WhatsApp: {{ site_settings.whatsapp_number }}</div>
+        {% endif %}
+      </div>
+
+      <div style="height:16px;"></div><!-- feed gap -->
+    </div>
+    <!-- /receipt-card -->
+  </div>
+</div>
+</body>
+</html>

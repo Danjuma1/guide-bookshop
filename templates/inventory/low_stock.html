@@ -1,0 +1,71 @@
+{% extends 'base_admin.html' %}
+{% block title %}Low Stock Report{% endblock %}
+{% block page_title %}Low Stock Alert{% endblock %}
+{% block content %}
+<div class="space-y-5">
+  {% if products %}
+  <div class="flex items-start gap-4 p-5 rounded-2xl border border-orange-200" style="background:linear-gradient(135deg,#fff7ed,#ffedd5)">
+    <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+      <i class="fas fa-triangle-exclamation text-orange-500 text-xl"></i>
+    </div>
+    <div>
+      <div class="font-bold text-orange-800 text-lg">{{ products|length }} product{{ products|length|pluralize }} need restocking</div>
+      <div class="text-orange-600 text-sm mt-0.5">These products are at or below their reorder level. Take action to avoid stockouts.</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-sage-100 bg-sage-50">
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Product</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">SKU</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Current Stock</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Reorder Level</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Supplier</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3.5 font-semibold text-gray-800">{{ p.name }}</td>
+            <td class="px-5 py-3.5">
+              <span class="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">{{ p.sku }}</span>
+            </td>
+            <td class="px-5 py-3.5">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full {% if p.quantity_in_stock == 0 %}bg-red-100 text-red-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                {{ p.quantity_in_stock }}
+              </span>
+            </td>
+            <td class="px-5 py-3.5 text-gray-500">{{ p.reorder_level }}</td>
+            <td class="px-5 py-3.5 text-gray-500">{{ p.supplier.name|default:"—" }}</td>
+            <td class="px-5 py-3.5">
+              <a href="{% url 'adjust_stock' p.pk %}"
+                 class="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-all hover:opacity-90"
+                 style="background:linear-gradient(135deg,#16a34a,#14532d)">
+                <i class="fas fa-plus text-xs"></i> Add Stock
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-16">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+                  <i class="fas fa-circle-check text-3xl text-primary-600"></i>
+                </div>
+                <p class="text-gray-700 font-semibold text-lg mb-1">All systems good!</p>
+                <p class="text-gray-400 text-sm">All products are well-stocked</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

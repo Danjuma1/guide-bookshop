@@ -1,0 +1,152 @@
+{% extends 'base_admin.html' %}
+{% block title %}Import Customers{% endblock %}
+{% block page_title %}Import Customers{% endblock %}
+{% block extra_head %}
+<style>
+  .drop-zone {
+    border: 2px dashed #86efac;
+    background: #f8fdf8;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone.drag-over, .drop-zone:hover {
+    border-color: #16a34a;
+    background: #f0fdf4;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-3xl space-y-6">
+
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+             style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-file-excel text-primary-600 text-xl"></i>
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-gray-800 text-lg">Bulk Import Customers</h3>
+          <p class="text-sm text-gray-500 mt-1">Upload a <strong>.xlsx</strong> or <strong>.csv</strong> file. Download a template below to get started.</p>
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            {% for h in headers %}
+            <span class="text-xs font-mono bg-sage-100 text-primary-800 px-2.5 py-1 rounded-lg border border-sage-200">{{ h }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-sage-200 p-5">
+    <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+      <i class="fas fa-download mr-1.5 text-primary-400"></i>Download Blank Template
+    </div>
+    <div class="flex gap-3">
+      <a href="?template=xlsx"
+         class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
+         style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 3px 12px rgba(22,163,74,0.3)">
+        <i class="fas fa-table-columns"></i> Download Excel (.xlsx)
+      </a>
+      <a href="?template=csv"
+         class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm bg-sage-100 text-gray-700 hover:bg-sage-200 transition-colors border border-sage-200">
+        <i class="fas fa-file-csv text-primary-600"></i> Download CSV
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Upload File</h3>
+    </div>
+    <div class="p-6">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="file-input" class="drop-zone rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer block" id="drop-zone">
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-cloud-arrow-up text-primary-400 text-3xl" id="upload-icon"></i>
+          </div>
+          <div class="font-semibold text-gray-700 text-base" id="file-label">Drag & drop your file here</div>
+          <div class="text-sm text-gray-400 mt-1" id="file-sublabel">or click to browse — supports .xlsx and .csv</div>
+          <input type="file" name="file" id="file-input" accept=".xlsx,.csv" class="hidden" required>
+        </label>
+        <div class="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 flex gap-2.5">
+          <i class="fas fa-circle-info mt-0.5 flex-shrink-0"></i>
+          <span>The first row must contain exact column headers. Rows with a blank <em>Name</em> are skipped.</span>
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button type="submit"
+                  class="flex-1 text-white py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                  style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+            <i class="fas fa-upload"></i> Import Customers
+          </button>
+          <a href="{% url 'customer_list' %}"
+             class="px-6 bg-sage-100 text-gray-700 py-3.5 rounded-2xl font-semibold text-sm text-center hover:bg-sage-200 transition-colors border border-sage-200">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if results %}
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Import Results</h3>
+      </div>
+      <span class="text-xs font-semibold bg-primary-50 text-primary-700 px-3 py-1 rounded-full">{{ results|length }} row(s)</span>
+    </div>
+    <div class="overflow-x-auto max-h-80 overflow-y-auto">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0">
+          <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-16">Row</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Name</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-28">Status</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-50">
+          {% for r in results %}
+          <tr class="hover:bg-sage-50">
+            <td class="px-5 py-3 text-gray-400 font-mono text-xs">{{ r.row }}</td>
+            <td class="px-5 py-3 font-medium text-gray-800">{{ r.name }}</td>
+            <td class="px-5 py-3">
+              {% if r.status == 'created' %}
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700"><i class="fas fa-check mr-1"></i>Created</span>
+              {% else %}
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-600"><i class="fas fa-times mr-1"></i>Error</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-xs text-gray-500">{{ r.error|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const input = document.getElementById('file-input');
+const label = document.getElementById('file-label');
+const sublabel = document.getElementById('file-sublabel');
+const icon = document.getElementById('upload-icon');
+const zone = document.getElementById('drop-zone');
+input.addEventListener('change', () => {
+  if (input.files[0]) { label.textContent = input.files[0].name; sublabel.textContent = (input.files[0].size/1024).toFixed(1)+' KB'; icon.className='fas fa-file-check text-primary-500 text-3xl'; }
+});
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; label.textContent = e.dataTransfer.files[0].name; icon.className='fas fa-file-check text-primary-500 text-3xl'; }
+});
+</script>
+{% endblock %}

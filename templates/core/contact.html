@@ -1,0 +1,120 @@
+{% extends 'base_public.html' %}
+{% block title %}Contact Us - Guide Bookshop{% endblock %}
+{% block extra_head %}
+<style>
+  .contact-input {
+    border: 1px solid #e2f0e2;
+    background: #f8fdf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .contact-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    outline: none;
+    background: white;
+  }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Banner -->
+<div class="relative py-20 overflow-hidden" style="background:linear-gradient(135deg,#052e16,#0f3d1f,#14532d,#15803d)">
+  <div class="absolute inset-0 opacity-10 pointer-events-none">
+    <div class="absolute top-0 right-0 w-80 h-80 rounded-full" style="background:radial-gradient(circle,#4ade80,transparent)"></div>
+  </div>
+  <div class="max-w-4xl mx-auto px-4 text-center relative z-10">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-5 uppercase tracking-widest"
+         style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);color:#86efac">
+      <i class="fas fa-envelope"></i> Reach Out
+    </div>
+    <h1 class="font-display text-5xl md:text-6xl font-bold text-white mb-4">Contact Us</h1>
+    <p class="text-primary-200 text-xl">We're here to help — reach out anytime</p>
+  </div>
+</div>
+
+<div class="max-w-6xl mx-auto px-4 py-16">
+  <div class="grid md:grid-cols-2 gap-12">
+
+    <!-- Contact Info -->
+    <div>
+      <h2 class="font-display text-3xl font-bold text-gray-900 mb-8">Get In Touch</h2>
+      <div class="space-y-5">
+        {% if site_settings %}
+        <div class="flex items-start gap-4 p-5 bg-white rounded-2xl border border-sage-200 hover:border-primary-300 transition-colors">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-map-marker-alt text-primary-600"></i>
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 mb-0.5">Our Address</div>
+            <div class="text-gray-500 text-sm leading-relaxed">{{ site_settings.address }}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-5 bg-white rounded-2xl border border-sage-200 hover:border-primary-300 transition-colors">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-phone-alt text-primary-600"></i>
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 mb-0.5">Phone Number</div>
+            <a href="tel:{{ site_settings.phone }}" class="text-primary-600 text-sm font-medium hover:text-primary-800">{{ site_settings.phone }}</a>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-5 bg-white rounded-2xl border border-sage-200 hover:border-primary-300 transition-colors">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-envelope text-primary-600"></i>
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 mb-0.5">Email Address</div>
+            <a href="mailto:{{ site_settings.email }}" class="text-primary-600 text-sm font-medium hover:text-primary-800">{{ site_settings.email }}</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="p-5 bg-sage-100 rounded-2xl text-gray-500 text-sm">Contact information will be updated soon.</div>
+        {% endif %}
+        <div class="flex items-start gap-4 p-5 bg-white rounded-2xl border border-sage-200 hover:border-primary-300 transition-colors">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <i class="fas fa-clock text-primary-600"></i>
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 mb-0.5">Business Hours</div>
+            <div class="text-gray-500 text-sm leading-relaxed">
+              Mon – Sat: 8:00 AM – 7:00 PM<br>
+              Sunday: 10:00 AM – 4:00 PM
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Form -->
+    <div class="bg-white rounded-3xl border border-sage-200 overflow-hidden shadow-sm">
+      <div class="h-1.5" style="background:linear-gradient(90deg,#16a34a,#86efac)"></div>
+      <div class="p-8">
+        <h3 class="font-semibold text-gray-800 text-xl mb-6">Send a Message</h3>
+        <form class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+            <input type="text" class="contact-input w-full px-4 py-3 rounded-xl text-sm" placeholder="Your full name">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+            <input type="email" class="contact-input w-full px-4 py-3 rounded-xl text-sm" placeholder="your@email.com">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+            <input type="text" class="contact-input w-full px-4 py-3 rounded-xl text-sm" placeholder="How can we help?">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+            <textarea rows="4" class="contact-input w-full px-4 py-3 rounded-xl text-sm resize-none" placeholder="Write your message here..."></textarea>
+          </div>
+          <button type="submit"
+                  class="w-full text-white py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5"
+                  style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
+            <i class="fas fa-paper-plane mr-2"></i>Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base_admin.html' %}
+{% block title %}Staff Management{% endblock %}
+{% block page_title %}Staff Management{% endblock %}
+{% block content %}
+<div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-sage-200 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">All Staff Members</h3>
+    </div>
+    <a href="{% url 'staff_add' %}"
+       class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all hover:opacity-90"
+       style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 2px 8px rgba(22,163,74,0.25)">
+      <i class="fas fa-plus text-xs"></i> Add Staff
+    </a>
+  </div>
+  <div>
+    {% for profile in profiles %}
+    <div class="px-5 py-4 flex items-center justify-between hover:bg-sage-50 transition-colors border-b border-sage-50 last:border-0">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+             style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+          {{ profile.user.first_name.0|default:profile.user.username.0|upper }}
+        </div>
+        <div>
+          <div class="font-semibold text-gray-800">{{ profile.user.get_full_name|default:profile.user.username }}</div>
+          <div class="text-sm text-gray-500">{{ profile.user.email }}</div>
+          {% if profile.phone %}<div class="text-xs text-gray-400">{{ profile.phone }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-right">
+          <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700">{{ profile.get_role_display }}</span>
+          {% if profile.employee_id %}<div class="text-xs text-gray-400 mt-1">ID: {{ profile.employee_id }}</div>{% endif %}
+        </div>
+        <a href="{% url 'staff_edit' profile.pk %}"
+           class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Edit">
+          <i class="fas fa-pen text-xs"></i>
+        </a>
+        {% if profile.user != request.user %}
+        <form method="post" action="{% url 'staff_delete' profile.pk %}" onsubmit="return confirm('Delete {{ profile.user.get_full_name|default:profile.user.username }}? This cannot be undone.')">
+          {% csrf_token %}
+          <button type="submit"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="flex flex-col items-center justify-center py-16">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+        <i class="fas fa-user-tie text-3xl text-primary-300"></i>
+      </div>
+      <p class="text-gray-500 font-medium">No staff members yet</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

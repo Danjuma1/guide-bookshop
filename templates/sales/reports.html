@@ -1,0 +1,251 @@
+{% extends 'base_admin.html' %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Sales Reports{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Period Selector -->
+  <div class="bg-white rounded-2xl border border-sage-200 p-4">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Period:</span>
+      <a href="?period=today"
+         class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5
+         {% if period == 'today' %}text-white shadow-md{% else %}bg-sage-100 text-gray-600 hover:bg-primary-50 hover:text-primary-700{% endif %}"
+         {% if period == 'today' %}style="background:linear-gradient(135deg,#16a34a,#14532d)"{% endif %}>
+        Today
+      </a>
+      <a href="?period=week"
+         class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5
+         {% if period == 'week' %}text-white shadow-md{% else %}bg-sage-100 text-gray-600 hover:bg-primary-50 hover:text-primary-700{% endif %}"
+         {% if period == 'week' %}style="background:linear-gradient(135deg,#16a34a,#14532d)"{% endif %}>
+        Last 7 Days
+      </a>
+      <a href="?period=month"
+         class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5
+         {% if period == 'month' %}text-white shadow-md{% else %}bg-sage-100 text-gray-600 hover:bg-primary-50 hover:text-primary-700{% endif %}"
+         {% if period == 'month' %}style="background:linear-gradient(135deg,#16a34a,#14532d)"{% endif %}>
+        This Month
+      </a>
+      <a href="?period=year"
+         class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5
+         {% if period == 'year' %}text-white shadow-md{% else %}bg-sage-100 text-gray-600 hover:bg-primary-50 hover:text-primary-700{% endif %}"
+         {% if period == 'year' %}style="background:linear-gradient(135deg,#16a34a,#14532d)"{% endif %}>
+        This Year
+      </a>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="stat-card p-5 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-16 h-16 rounded-full -translate-y-6 translate-x-6 opacity-15"
+           style="background:radial-gradient(#16a34a,transparent)"></div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <i class="fas fa-naira-sign text-primary-600 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Revenue</div>
+      <div class="text-2xl font-bold text-gray-800">&#8358;{{ total_revenue|currency }}</div>
+      <div class="text-xs text-primary-600 font-medium mt-1">{{ total_transactions }} transaction{{ total_transactions|pluralize }}</div>
+    </div>
+    {% if user_can_view_financials %}
+    <div class="stat-card p-5 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-16 h-16 rounded-full -translate-y-6 translate-x-6 opacity-15"
+           style="background:radial-gradient(#22c55e,transparent)"></div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-emerald-50">
+        <i class="fas fa-chart-trending-up text-emerald-600 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gross Profit</div>
+      <div class="text-2xl font-bold text-emerald-600">&#8358;{{ total_profit|currency }}</div>
+    </div>
+    {% endif %}
+    <div class="stat-card p-5 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-16 h-16 rounded-full -translate-y-6 translate-x-6 opacity-15"
+           style="background:radial-gradient(#ef4444,transparent)"></div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-red-50">
+        <i class="fas fa-arrow-trend-down text-red-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Expenses</div>
+      <div class="text-2xl font-bold text-red-500">&#8358;{{ total_expenses|currency }}</div>
+    </div>
+    {% if user_can_view_financials %}
+    <div class="stat-card p-5 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-16 h-16 rounded-full -translate-y-6 translate-x-6 opacity-15"
+           style="background:radial-gradient({% if net_profit >= 0 %}#16a34a{% else %}#ef4444{% endif %},transparent)"></div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 {% if net_profit >= 0 %}bg-primary-50{% else %}bg-red-50{% endif %}">
+        <i class="fas fa-scale-balanced {% if net_profit >= 0 %}text-primary-600{% else %}text-red-500{% endif %} text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Net Profit</div>
+      <div class="text-2xl font-bold {% if net_profit >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">&#8358;{{ net_profit|currency }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Charts -->
+  <div class="grid lg:grid-cols-3 gap-5">
+
+    <!-- Revenue Trend -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-sage-200 p-5">
+      <div class="flex items-center gap-2 mb-5">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Revenue Trend</h3>
+      </div>
+      <canvas id="revenueChart" height="110"></canvas>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="bg-white rounded-2xl border border-sage-200 p-5">
+      <div class="flex items-center gap-2 mb-5">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Payment Methods</h3>
+      </div>
+      <div class="flex items-center justify-center mb-4">
+        <canvas id="paymentChart" style="max-height:160px;max-width:160px"></canvas>
+      </div>
+      <div class="space-y-2">
+        {% for method, amount in payment_breakdown.items %}
+        <div class="flex items-center justify-between text-sm py-1.5 border-b border-sage-100 last:border-0">
+          <span class="text-gray-600 capitalize font-medium">{{ method }}</span>
+          <span class="font-bold text-gray-800">&#8358;{{ amount|currency }}</span>
+        </div>
+        {% empty %}
+        <div class="text-gray-400 text-sm text-center py-6">No payment data</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Products Table -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Top Selling Products</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-sage-100 bg-sage-50">
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider w-12">#</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Product</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Qty Sold</th>
+            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in top_products %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3.5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                   style="background:linear-gradient(135deg,{% if forloop.counter == 1 %}#16a34a,#14532d{% elif forloop.counter == 2 %}#22c55e,#16a34a{% elif forloop.counter == 3 %}#4ade80,#22c55e{% else %}#86efac,#4ade80{% endif %})">
+                {{ forloop.counter }}
+              </div>
+            </td>
+            <td class="px-5 py-3.5 font-semibold text-gray-800">{{ p.product__name }}</td>
+            <td class="px-5 py-3.5">
+              <span class="text-primary-700 font-bold">{{ p.total_qty }}</span>
+              <span class="text-gray-400 text-xs ml-1">units</span>
+            </td>
+            <td class="px-5 py-3.5 font-semibold text-gray-700">&#8358;{{ p.total_revenue|currency }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-12 text-gray-400">
+              <i class="fas fa-chart-bar text-3xl mb-2 block text-gray-200"></i>
+              No sales data for this period
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartData = {{ chart_data|safe }};
+const paymentData = {{ payment_breakdown|safe }};
+
+new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: {
+    labels: chartData.map(d => d.date),
+    datasets: [{
+      label: 'Revenue',
+      data: chartData.map(d => d.revenue),
+      borderColor: '#16a34a',
+      backgroundColor: function(context) {
+        const chart = context.chart;
+        const {ctx: c, chartArea} = chart;
+        if (!chartArea) return 'rgba(22,163,74,0.08)';
+        const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        gradient.addColorStop(0, 'rgba(22,163,74,0.2)');
+        gradient.addColorStop(1, 'rgba(22,163,74,0.01)');
+        return gradient;
+      },
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.45,
+      pointBackgroundColor: '#16a34a',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#052e16',
+        padding: 12,
+        cornerRadius: 10,
+        callbacks: { label: v => ' ₦' + v.parsed.y.toLocaleString() }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#e2f0e2', drawBorder: false },
+        ticks: { callback: v => '₦' + (v/1000 >= 1 ? (v/1000).toFixed(0)+'k' : v), font: { size: 10 }, color: '#9ca3af' },
+        border: { display: false }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10 }, color: '#9ca3af' },
+        border: { display: false }
+      }
+    }
+  }
+});
+
+const pmLabels = Object.keys(paymentData);
+const pmValues = Object.values(paymentData);
+if (pmLabels.length > 0) {
+  new Chart(document.getElementById('paymentChart'), {
+    type: 'doughnut',
+    data: {
+      labels: pmLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+      datasets: [{
+        data: pmValues,
+        backgroundColor: ['#16a34a','#22c55e','#4ade80','#86efac','#bbf7d0'],
+        borderWidth: 3,
+        borderColor: '#fff',
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, family: 'Inter' }, color: '#6b7280', padding: 8 } }
+      },
+      cutout: '68%'
+    }
+  });
+}
+</script>
+{% endblock %}
