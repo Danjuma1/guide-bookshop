@@ -81,12 +81,12 @@
 
   <!-- Table -->
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
-    <div class="overflow-x-auto">
+    <!-- Desktop table -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         {% with qp=request.GET.urlencode %}
         <thead>
           <tr class="border-b border-sage-100 bg-sage-50">
-            {% comment %}Sortable helper: toggle between asc/desc for the clicked field{% endcomment %}
             <th class="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
               <a href="?{% if sort == 'invoice_number' %}sort=-invoice_number{% else %}sort=invoice_number{% endif %}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
                  class="flex items-center gap-1 {% if sort == 'invoice_number' or sort == '-invoice_number' %}text-primary-600{% else %}text-gray-400{% endif %} hover:text-primary-600 transition-colors">
@@ -175,6 +175,55 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="md:hidden divide-y divide-sage-100">
+      {% for sale in sales %}
+      <div class="p-4 hover:bg-sage-50 transition-colors">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <a href="{% url 'sale_detail' sale.pk %}" class="font-bold text-primary-600 text-sm">{{ sale.invoice_number }}</a>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <div class="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                   style="background:linear-gradient(135deg,#86efac,#22c55e)">
+                {{ sale.customer.name.0|default:"W"|upper }}
+              </div>
+              <span class="text-gray-600 text-sm">{{ sale.customer.name|default:"Walk-in" }}</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</div>
+            <span class="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full
+              {% if sale.payment_method == 'cash' %}bg-green-50 text-green-700
+              {% elif sale.payment_method == 'card' %}bg-blue-50 text-blue-700
+              {% elif sale.payment_method == 'transfer' %}bg-purple-50 text-purple-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ sale.get_payment_method_display }}
+            </span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-0.5 rounded-lg">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</span>
+            <span class="text-xs text-gray-400">{{ sale.sale_date|date:"d M Y" }}</span>
+          </div>
+          <a href="{% url 'sale_invoice' sale.pk %}"
+             class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all" title="Print Invoice">
+            <i class="fas fa-print text-xs"></i>
+          </a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-10 text-center">
+        <div class="flex flex-col items-center">
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-receipt text-3xl text-primary-300"></i>
+          </div>
+          <p class="text-gray-500 font-medium">No sales found</p>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

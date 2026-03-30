@@ -16,7 +16,8 @@
   {% endif %}
 
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
-    <div class="overflow-x-auto">
+    <!-- Desktop table -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-sage-100 bg-sage-50">
@@ -65,6 +66,34 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="md:hidden divide-y divide-sage-100">
+      {% for p in products %}
+      <div class="p-4 hover:bg-sage-50 transition-colors">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <div class="font-semibold text-gray-800 text-sm">{{ p.name }}</div>
+            <div class="font-mono text-xs text-gray-400 mt-0.5">{{ p.sku }}</div>
+            {% if p.supplier %}<div class="text-xs text-gray-500 mt-0.5">{{ p.supplier.name }}</div>{% endif %}
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full {% if p.quantity_in_stock == 0 %}bg-red-100 text-red-700{% else %}bg-orange-100 text-orange-700{% endif %}">{{ p.quantity_in_stock }} in stock</span>
+            <div class="text-xs text-gray-400 mt-1">Reorder at {{ p.reorder_level }}</div>
+          </div>
+        </div>
+        <a href="{% url 'adjust_stock' p.pk %}"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg mt-1"
+           style="background:linear-gradient(135deg,#16a34a,#14532d)">
+          <i class="fas fa-plus text-xs"></i> Add Stock
+        </a>
+      </div>
+      {% empty %}
+      <div class="p-10 text-center">
+        <p class="text-gray-700 font-semibold">All products are well-stocked</p>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

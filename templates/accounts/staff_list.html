@@ -16,36 +16,40 @@
   </div>
   <div>
     {% for profile in profiles %}
-    <div class="px-5 py-4 flex items-center justify-between hover:bg-sage-50 transition-colors border-b border-sage-50 last:border-0">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-             style="background:linear-gradient(135deg,#22c55e,#16a34a)">
-          {{ profile.user.first_name.0|default:profile.user.username.0|upper }}
+    <div class="px-4 sm:px-5 py-4 hover:bg-sage-50 transition-colors border-b border-sage-50 last:border-0">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0"
+               style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            {{ profile.user.first_name.0|default:profile.user.username.0|upper }}
+          </div>
+          <div class="min-w-0">
+            <div class="font-semibold text-gray-800 truncate">{{ profile.user.get_full_name|default:profile.user.username }}</div>
+            {% if profile.user.email %}<div class="text-sm text-gray-500 truncate">{{ profile.user.email }}</div>{% endif %}
+            {% if profile.phone %}<div class="text-xs text-gray-400">{{ profile.phone }}</div>{% endif %}
+          </div>
         </div>
-        <div>
-          <div class="font-semibold text-gray-800">{{ profile.user.get_full_name|default:profile.user.username }}</div>
-          <div class="text-sm text-gray-500">{{ profile.user.email }}</div>
-          {% if profile.phone %}<div class="text-xs text-gray-400">{{ profile.phone }}</div>{% endif %}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-shrink-0">
+          <div class="text-right sm:text-left">
+            <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700">{{ profile.get_role_display }}</span>
+            {% if profile.employee_id %}<div class="text-xs text-gray-400 mt-0.5">ID: {{ profile.employee_id }}</div>{% endif %}
+          </div>
+          <div class="flex items-center gap-1">
+            <a href="{% url 'staff_edit' profile.pk %}"
+               class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Edit">
+              <i class="fas fa-pen text-xs"></i>
+            </a>
+            {% if profile.user != request.user %}
+            <form method="post" action="{% url 'staff_delete' profile.pk %}" onsubmit="return confirm('Delete {{ profile.user.get_full_name|default:profile.user.username }}? This cannot be undone.')">
+              {% csrf_token %}
+              <button type="submit"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete">
+                <i class="fas fa-trash text-xs"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
         </div>
-      </div>
-      <div class="flex items-center gap-4">
-        <div class="text-right">
-          <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700">{{ profile.get_role_display }}</span>
-          {% if profile.employee_id %}<div class="text-xs text-gray-400 mt-1">ID: {{ profile.employee_id }}</div>{% endif %}
-        </div>
-        <a href="{% url 'staff_edit' profile.pk %}"
-           class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Edit">
-          <i class="fas fa-pen text-xs"></i>
-        </a>
-        {% if profile.user != request.user %}
-        <form method="post" action="{% url 'staff_delete' profile.pk %}" onsubmit="return confirm('Delete {{ profile.user.get_full_name|default:profile.user.username }}? This cannot be undone.')">
-          {% csrf_token %}
-          <button type="submit"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete">
-            <i class="fas fa-trash text-xs"></i>
-          </button>
-        </form>
-        {% endif %}
       </div>
     </div>
     {% empty %}

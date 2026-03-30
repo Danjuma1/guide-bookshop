@@ -16,30 +16,30 @@
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
     <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
     <div class="p-6">
-      <div class="flex justify-between items-start mb-5">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-5">
         <div>
           <div class="flex items-center gap-3 mb-1">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
               <i class="fas fa-receipt text-primary-600 text-sm"></i>
             </div>
-            <h2 class="text-xl font-bold text-gray-800 font-mono tracking-wide">{{ sale.invoice_number }}</h2>
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800 font-mono tracking-wide">{{ sale.invoice_number }}</h2>
           </div>
-          <div class="text-gray-400 text-sm ml-13 pl-1">
+          <div class="text-gray-400 text-sm pl-1">
             <i class="fas fa-clock mr-1"></i>{{ sale.sale_date|date:"d M Y, H:i" }}
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <span class="px-3 py-1.5 rounded-full text-xs font-bold"
                 style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d">
             {{ sale.get_status_display }}
           </span>
           <a href="{% url 'sale_receipt' sale.pk %}" target="_blank"
-             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             class="text-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
              style="background:linear-gradient(135deg,#111,#374151)">
             <i class="fas fa-receipt"></i> Receipt
           </a>
           <a href="{% url 'sale_invoice' sale.pk %}"
-             class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
+             class="text-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
              style="background:linear-gradient(135deg,#16a34a,#14532d)">
             <i class="fas fa-file-invoice"></i> Invoice
           </a>

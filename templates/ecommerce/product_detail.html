@@ -17,7 +17,7 @@
   </nav>
 
   <!-- Product Grid -->
-  <div class="grid md:grid-cols-2 gap-12 mb-16">
+  <div class="grid md:grid-cols-2 gap-6 md:gap-12 mb-10 md:mb-16">
 
     <!-- Image -->
     <div>
@@ -47,14 +47,14 @@
       </div>
       {% endif %}
 
-      <h1 class="font-display text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">{{ product.name }}</h1>
+      <h1 class="font-display text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 leading-tight">{{ product.name }}</h1>
       {% if product.author %}
       <div class="text-gray-500 text-lg mb-5">by <span class="font-semibold text-gray-700">{{ product.author }}</span></div>
       {% endif %}
 
       <!-- Price -->
       <div class="flex items-center gap-4 mb-6 p-4 rounded-2xl" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
-        <span class="text-primary-700 font-bold text-4xl">&#8358;{{ product.effective_price|currency }}</span>
+        <span class="text-primary-700 font-bold text-2xl md:text-4xl">&#8358;{{ product.effective_price|currency }}</span>
         {% if product.discount_price %}
         <div>
           <div class="text-gray-400 text-lg line-through">&#8358;{{ product.selling_price|currency }}</div>
@@ -147,7 +147,7 @@
       <div class="w-1 h-6 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
       <h2 class="font-display text-2xl font-bold text-gray-900">Related Products</h2>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-5">
       {% for p in related %}
       <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-primary-300 transition-all">
         <a href="{% url 'shop_product_detail' p.slug %}" class="block overflow-hidden">

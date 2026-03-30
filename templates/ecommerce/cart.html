@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Banner -->
-<div class="relative py-12 overflow-hidden" style="background:linear-gradient(135deg,#052e16,#14532d,#16a34a)">
+<div class="relative py-8 md:py-12 overflow-hidden" style="background:linear-gradient(135deg,#052e16,#14532d,#16a34a)">
   <div class="max-w-7xl mx-auto px-4 relative z-10">
     <div class="flex items-center gap-2 text-primary-300 text-sm mb-2">
       <a href="{% url 'landing' %}" class="hover:text-white transition-colors">Home</a>
@@ -12,49 +12,70 @@
       <i class="fas fa-chevron-right text-xs text-primary-500"></i>
       <span class="text-white font-medium">Cart</span>
     </div>
-    <h1 class="font-display text-4xl font-bold text-white">Shopping Cart</h1>
+    <h1 class="font-display text-2xl md:text-4xl font-bold text-white">Shopping Cart</h1>
     {% if items %}<p class="text-primary-200 mt-1">{{ items|length }} item{{ items|length|pluralize }} in your cart</p>{% endif %}
   </div>
 </div>
 
-<div class="max-w-5xl mx-auto px-4 py-10">
+<div class="max-w-5xl mx-auto px-4 py-6 md:py-10">
   {% if items %}
-  <div class="grid lg:grid-cols-3 gap-8">
+  <div class="grid lg:grid-cols-3 gap-5 md:gap-8">
 
     <!-- Cart Items -->
     <div class="lg:col-span-2 space-y-4">
       {% for item in items %}
-      <div class="bg-white rounded-2xl border border-sage-200 p-4 flex gap-4 items-start hover:border-primary-200 transition-colors">
-        <a href="{% url 'shop_product_detail' item.product.slug %}" class="flex-shrink-0">
-          {% if item.product.image %}
-          <img src="{{ item.product.image.url }}" class="w-24 h-24 object-cover rounded-xl">
-          {% else %}
-          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
-            <i class="fas fa-book text-primary-400 text-2xl"></i>
+      <div class="bg-white rounded-2xl border border-sage-200 p-3 sm:p-4 hover:border-primary-200 transition-colors">
+        <div class="flex gap-3 sm:gap-4 items-start">
+          <a href="{% url 'shop_product_detail' item.product.slug %}" class="flex-shrink-0">
+            {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-xl">
+            {% else %}
+            <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+              <i class="fas fa-book text-primary-400 text-xl sm:text-2xl"></i>
+            </div>
+            {% endif %}
+          </a>
+          <div class="flex-1 min-w-0">
+            <a href="{% url 'shop_product_detail' item.product.slug %}" class="font-semibold text-gray-800 hover:text-primary-700 line-clamp-2 block text-sm transition-colors">{{ item.product.name }}</a>
+            {% if item.product.author %}<div class="text-xs text-gray-400 mb-1">by {{ item.product.author }}</div>{% endif %}
+            {% if item.product.category %}<div class="inline-flex text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full font-medium mb-2">{{ item.product.category.name }}</div>{% endif %}
+            <div class="text-primary-700 font-bold text-sm">&#8358;{{ item.product.effective_price|currency }}</div>
+            <!-- Mobile: controls inline below name -->
+            <div class="flex items-center justify-between mt-2 sm:hidden">
+              <form method="post" action="{% url 'update_cart' item.pk %}" class="flex items-center gap-1.5">
+                {% csrf_token %}
+                <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
+                        class="w-7 h-7 bg-sage-100 rounded-lg text-sm font-bold hover:bg-primary-100 hover:text-primary-700 flex items-center justify-center transition-colors">−</button>
+                <span class="w-7 text-center font-bold text-gray-800 text-sm">{{ item.quantity }}</span>
+                <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
+                        class="w-7 h-7 rounded-lg text-sm font-bold flex items-center justify-center text-white"
+                        style="background:linear-gradient(135deg,#16a34a,#14532d)">+</button>
+              </form>
+              <div class="text-right">
+                <div class="font-bold text-gray-800 text-sm">&#8358;{{ item.subtotal|currency }}</div>
+                <a href="{% url 'remove_from_cart' item.pk %}" class="text-xs text-red-400 hover:text-red-600 transition-colors inline-flex items-center gap-1">
+                  <i class="fas fa-trash text-xs"></i> Remove
+                </a>
+              </div>
+            </div>
           </div>
-          {% endif %}
-        </a>
-        <div class="flex-1 min-w-0">
-          <a href="{% url 'shop_product_detail' item.product.slug %}" class="font-semibold text-gray-800 hover:text-primary-700 line-clamp-1 block text-sm transition-colors">{{ item.product.name }}</a>
-          {% if item.product.author %}<div class="text-xs text-gray-400 mb-1">by {{ item.product.author }}</div>{% endif %}
-          {% if item.product.category %}<div class="inline-flex text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full font-medium mb-2">{{ item.product.category.name }}</div>{% endif %}
-          <div class="text-primary-700 font-bold">&#8358;{{ item.product.effective_price|currency }}</div>
-        </div>
-        <div class="flex flex-col items-end gap-3">
-          <form method="post" action="{% url 'update_cart' item.pk %}" class="flex items-center gap-2">
-            {% csrf_token %}
-            <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
-                    class="w-8 h-8 bg-sage-100 rounded-xl text-sm font-bold hover:bg-primary-100 hover:text-primary-700 flex items-center justify-center transition-colors">−</button>
-            <span class="w-8 text-center font-bold text-gray-800 text-sm">{{ item.quantity }}</span>
-            <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
-                    class="w-8 h-8 rounded-xl text-sm font-bold flex items-center justify-center text-white transition-all hover:scale-110"
-                    style="background:linear-gradient(135deg,#16a34a,#14532d)">+</button>
-          </form>
-          <div class="text-right">
-            <div class="font-bold text-gray-800 text-sm">&#8358;{{ item.subtotal|currency }}</div>
-            <a href="{% url 'remove_from_cart' item.pk %}" class="text-xs text-red-400 hover:text-red-600 transition-colors mt-1 inline-flex items-center gap-1">
-              <i class="fas fa-trash text-xs"></i> Remove
-            </a>
+          <!-- Desktop: controls on the right -->
+          <div class="hidden sm:flex flex-col items-end gap-3">
+            <form method="post" action="{% url 'update_cart' item.pk %}" class="flex items-center gap-2">
+              {% csrf_token %}
+              <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
+                      class="w-8 h-8 bg-sage-100 rounded-xl text-sm font-bold hover:bg-primary-100 hover:text-primary-700 flex items-center justify-center transition-colors">−</button>
+              <span class="w-8 text-center font-bold text-gray-800 text-sm">{{ item.quantity }}</span>
+              <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
+                      class="w-8 h-8 rounded-xl text-sm font-bold flex items-center justify-center text-white transition-all hover:scale-110"
+                      style="background:linear-gradient(135deg,#16a34a,#14532d)">+</button>
+            </form>
+            <div class="text-right">
+              <div class="font-bold text-gray-800 text-sm">&#8358;{{ item.subtotal|currency }}</div>
+              <a href="{% url 'remove_from_cart' item.pk %}" class="text-xs text-red-400 hover:text-red-600 transition-colors mt-1 inline-flex items-center gap-1">
+                <i class="fas fa-trash text-xs"></i> Remove
+              </a>
+            </div>
           </div>
         </div>
       </div>

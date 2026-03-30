@@ -73,37 +73,62 @@
       <i class="fas fa-boxes text-primary-500 text-sm"></i>
       <h3 class="font-semibold text-gray-700 text-sm">Order Items</h3>
     </div>
-    <table class="w-full text-sm">
-      <thead>
-        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
-          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
-          <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Ordered</th>
-          <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Received</th>
-          <th class="text-right px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Unit Cost</th>
-          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-sage-100">
-        {% for item in po.items.all %}
-        <tr class="hover:bg-sage-50 transition-colors">
-          <td class="px-5 py-3.5 font-medium text-gray-800">{{ item.product.name }}</td>
-          <td class="px-4 py-3.5 text-center">
-            <span class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{{ item.quantity_ordered }}</span>
-          </td>
-          <td class="px-4 py-3.5 text-center">
+    <!-- Desktop table -->
+    <div class="hidden sm:block overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+            <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
+            <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Ordered</th>
+            <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Received</th>
+            <th class="text-right px-4 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Unit Cost</th>
+            <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-100">
+          {% for item in po.items.all %}
+          <tr class="hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3.5 font-medium text-gray-800">{{ item.product.name }}</td>
+            <td class="px-4 py-3.5 text-center">
+              <span class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{{ item.quantity_ordered }}</span>
+            </td>
+            <td class="px-4 py-3.5 text-center">
+              {% if item.quantity_received > 0 %}
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold text-green-800"
+                    style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">{{ item.quantity_received }}</span>
+              {% else %}
+              <span class="bg-gray-100 text-gray-400 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5 text-right text-gray-600">&#8358;{{ item.unit_cost|currency }}</td>
+            <td class="px-5 py-3.5 text-right font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Mobile list -->
+    <div class="sm:hidden divide-y divide-sage-100">
+      {% for item in po.items.all %}
+      <div class="p-4">
+        <div class="font-medium text-gray-800 text-sm mb-1.5">{{ item.product.name }}</div>
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-bold">{{ item.quantity_ordered }} ordered</span>
             {% if item.quantity_received > 0 %}
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold text-green-800"
-                  style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">{{ item.quantity_received }}</span>
+            <span class="px-2 py-0.5 rounded-full font-bold text-green-800" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">{{ item.quantity_received }} rcvd</span>
             {% else %}
-            <span class="bg-gray-100 text-gray-400 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+            <span class="bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold">0 rcvd</span>
             {% endif %}
-          </td>
-          <td class="px-4 py-3.5 text-right text-gray-600">&#8358;{{ item.unit_cost|currency }}</td>
-          <td class="px-5 py-3.5 text-right font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+          <div class="text-right">
+            <div class="text-gray-500">&#8358;{{ item.unit_cost|currency }} each</div>
+            <div class="font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
   </div>
 
   <!-- Receive Stock Form -->
@@ -122,7 +147,7 @@
         <input type="hidden" name="action" value="receive">
         <div class="space-y-3 mb-5">
           {% for item in po.items.all %}
-          <div class="flex items-center justify-between rounded-xl px-4 py-3 border border-sage-100"
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl px-4 py-3 border border-sage-100"
                style="background:linear-gradient(135deg,#f8fdf8,#f0fdf4)">
             <div>
               <span class="text-sm font-semibold text-gray-800">{{ item.product.name }}</span>

@@ -15,7 +15,7 @@
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
     <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
     <div class="p-6">
-      <div class="flex items-start justify-between mb-5">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
         <div class="flex items-center gap-4">
           <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
                style="background:linear-gradient(135deg,#22c55e,#16a34a)">
@@ -34,7 +34,7 @@
           </div>
         </div>
         {% if user_can_write %}
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <a href="{% url 'supplier_edit' supplier.pk %}"
              class="text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-90"
              style="background:linear-gradient(135deg,#16a34a,#14532d)">
@@ -104,40 +104,64 @@
         <span class="ml-2 text-xs font-normal text-gray-400">({{ products|length }} product{{ products|length|pluralize }})</span>
       </h3>
     </div>
-    <table class="w-full text-sm">
-      <thead>
-        <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
-          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
-          <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">SKU</th>
-          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Price</th>
-          <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Stock</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-sage-50">
-        {% for product in products %}
-        <tr class="hover:bg-sage-50 transition-colors">
-          <td class="px-5 py-3">
-            <a href="{% url 'product_detail' product.pk %}" class="font-semibold text-gray-800 hover:text-primary-700 text-sm">
-              {{ product.name }}
-            </a>
-          </td>
-          <td class="px-5 py-3">
-            <span class="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg">{{ product.sku }}</span>
-          </td>
-          <td class="px-5 py-3 text-right font-semibold text-gray-800">&#8358;{{ product.effective_price|currency }}</td>
-          <td class="px-5 py-3 text-right">
-            <span class="font-bold {% if product.quantity_in_stock == 0 %}text-red-600{% elif product.is_low_stock %}text-orange-500{% else %}text-gray-800{% endif %}">
-              {{ product.quantity_in_stock }}
-            </span>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="4" class="text-center py-10 text-gray-400 text-sm">No products linked to this supplier</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <!-- Desktop table -->
+    <div class="hidden sm:block overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+            <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Product</th>
+            <th class="text-left px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">SKU</th>
+            <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Price</th>
+            <th class="text-right px-5 py-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Stock</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-50">
+          {% for product in products %}
+          <tr class="hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3">
+              <a href="{% url 'product_detail' product.pk %}" class="font-semibold text-gray-800 hover:text-primary-700 text-sm">
+                {{ product.name }}
+              </a>
+            </td>
+            <td class="px-5 py-3">
+              <span class="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg">{{ product.sku }}</span>
+            </td>
+            <td class="px-5 py-3 text-right font-semibold text-gray-800">&#8358;{{ product.effective_price|currency }}</td>
+            <td class="px-5 py-3 text-right">
+              <span class="font-bold {% if product.quantity_in_stock == 0 %}text-red-600{% elif product.is_low_stock %}text-orange-500{% else %}text-gray-800{% endif %}">
+                {{ product.quantity_in_stock }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-10 text-gray-400 text-sm">No products linked to this supplier</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Mobile list -->
+    <div class="sm:hidden divide-y divide-sage-100">
+      {% for product in products %}
+      <div class="flex items-center justify-between px-4 py-3 hover:bg-sage-50 transition-colors">
+        <div class="min-w-0">
+          <a href="{% url 'product_detail' product.pk %}" class="font-semibold text-gray-800 hover:text-primary-700 text-sm block truncate">
+            {{ product.name }}
+          </a>
+          <span class="font-mono text-xs text-gray-400">{{ product.sku }}</span>
+        </div>
+        <div class="text-right ml-3 flex-shrink-0">
+          <div class="font-semibold text-gray-800 text-sm">&#8358;{{ product.effective_price|currency }}</div>
+          <span class="text-xs font-bold {% if product.quantity_in_stock == 0 %}text-red-600{% elif product.is_low_stock %}text-orange-500{% else %}text-gray-500{% endif %}">
+            {{ product.quantity_in_stock }} in stock
+          </span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-8 text-center text-gray-400 text-sm">No products linked to this supplier</div>
+      {% endfor %}
+    </div>
   </div>
 
 </div>

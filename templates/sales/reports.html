@@ -123,7 +123,8 @@
       <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
       <h3 class="font-semibold text-gray-800">Top Selling Products</h3>
     </div>
-    <div class="overflow-x-auto">
+    <!-- Desktop table -->
+    <div class="hidden sm:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-sage-100 bg-sage-50">
@@ -159,6 +160,27 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+    <!-- Mobile list -->
+    <div class="sm:hidden divide-y divide-sage-100">
+      {% for p in top_products %}
+      <div class="flex items-center gap-3 p-4 hover:bg-sage-50 transition-colors">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+             style="background:linear-gradient(135deg,{% if forloop.counter == 1 %}#16a34a,#14532d{% elif forloop.counter == 2 %}#22c55e,#16a34a{% elif forloop.counter == 3 %}#4ade80,#22c55e{% else %}#86efac,#4ade80{% endif %})">
+          {{ forloop.counter }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-gray-800 text-sm truncate">{{ p.product__name }}</div>
+          <div class="text-xs text-primary-700 font-medium mt-0.5">{{ p.total_qty }} units sold</div>
+        </div>
+        <div class="font-semibold text-gray-700 text-sm">&#8358;{{ p.total_revenue|currency }}</div>
+      </div>
+      {% empty %}
+      <div class="p-10 text-center text-gray-400 text-sm">
+        <i class="fas fa-chart-bar text-3xl mb-2 block text-gray-200"></i>
+        No sales data for this period
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

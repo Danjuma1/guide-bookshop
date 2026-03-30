@@ -29,7 +29,7 @@
 <form method="post">
   {% csrf_token %}
 
-  <div class="grid md:grid-cols-2 gap-5 mb-5">
+  <div class="grid sm:grid-cols-2 gap-5 mb-5">
     <!-- Order Details Card -->
     <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
       <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
@@ -96,8 +96,8 @@
       </button>
     </div>
     <div class="p-5">
-      <!-- Column headers -->
-      <div class="grid grid-cols-12 gap-3 text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3 px-1">
+      <!-- Column headers (hidden on mobile) -->
+      <div class="hidden sm:grid grid-cols-12 gap-3 text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3 px-1">
         <div class="col-span-5">Product</div>
         <div class="col-span-3">Quantity</div>
         <div class="col-span-3">Unit Cost (&#8358;)</div>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <div class="flex gap-3">
+  <div class="flex flex-col sm:flex-row gap-3">
     <button type="submit"
             class="text-white px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center gap-2"
             style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
@@ -128,31 +128,65 @@ function addRow() {
   const container = document.getElementById('items-container');
   const div = document.createElement('div');
   div.className = 'item-row';
-  div.style.cssText = 'display:grid;grid-template-columns:repeat(12,1fr);gap:0.75rem;align-items:center';
   const opts = products.map(p => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join('');
   div.innerHTML = `
-    <div style="grid-column:span 5">
-      <select name="product_id" style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
-        <option value="">Select product...</option>${opts}
-      </select>
-    </div>
-    <div style="grid-column:span 3">
-      <input type="number" name="quantity" min="1" placeholder="Qty"
-             style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
-    </div>
-    <div style="grid-column:span 3">
-      <input type="number" name="unit_cost" step="0.01" placeholder="0.00"
-             style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
-    </div>
-    <div style="grid-column:span 1;text-align:center">
+    <div class="flex justify-between items-center mb-2 sm:hidden">
+      <span style="font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Item</span>
       <button type="button" onclick="this.closest('.item-row').remove()"
               style="color:#f87171;background:none;border:none;cursor:pointer;font-size:1rem;padding:4px">
         <i class="fas fa-times-circle"></i>
       </button>
     </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:0.5rem" class="sm:hidden">
+      <select name="product_id" style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+        <option value="">Select product...</option>${opts}
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <input type="number" name="quantity" min="1" placeholder="Quantity"
+               style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+        <input type="number" name="unit_cost" step="0.01" placeholder="Unit Cost (₦)"
+               style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+      </div>
+    </div>
+    <div style="display:none;grid-template-columns:repeat(12,1fr);gap:0.75rem;align-items:center" class="sm-grid">
+      <div style="grid-column:span 5">
+        <select name="product_id" style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+          <option value="">Select product...</option>${opts}
+        </select>
+      </div>
+      <div style="grid-column:span 3">
+        <input type="number" name="quantity" min="1" placeholder="Qty"
+               style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+      </div>
+      <div style="grid-column:span 3">
+        <input type="number" name="unit_cost" step="0.01" placeholder="0.00"
+               style="width:100%;border:1px solid #e2f0e2;background:#f8fdf8;border-radius:0.75rem;padding:0.6rem 1rem;font-size:0.875rem;outline:none">
+      </div>
+      <div style="grid-column:span 1;text-align:center">
+        <button type="button" onclick="this.closest('.item-row').remove()"
+                style="color:#f87171;background:none;border:none;cursor:pointer;font-size:1rem;padding:4px">
+          <i class="fas fa-times-circle"></i>
+        </button>
+      </div>
+    </div>
   `;
   container.appendChild(div);
+  // Show correct layout based on screen width
+  applyRowLayout(div);
 }
+
+function applyRowLayout(div) {
+  const isSm = window.innerWidth >= 640;
+  div.querySelector('.sm-grid').style.display = isSm ? 'grid' : 'none';
+  const mobileEl = div.querySelector('.sm\\:hidden');
+  if (mobileEl) mobileEl.style.display = isSm ? 'none' : 'block';
+  const mobileFlex = div.querySelector('.flex.justify-between');
+  if (mobileFlex) mobileFlex.style.display = isSm ? 'none' : 'flex';
+}
+
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.item-row').forEach(applyRowLayout);
+});
 addRow();
 </script>
 {% endblock %}

@@ -35,7 +35,7 @@
         {% csrf_token %}
 
         <!-- Name Row -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
             <input type="text" name="first_name" value="{{ profile.user.first_name|default:'' }}" required

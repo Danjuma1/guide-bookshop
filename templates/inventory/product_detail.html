@@ -5,20 +5,20 @@
 <div class="grid lg:grid-cols-3 gap-6">
   <div class="lg:col-span-2 space-y-5">
     <div class="bg-white rounded-2xl shadow-sm p-6">
-      <div class="flex items-start justify-between mb-5">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
         <div class="flex items-start gap-4">
-          {% if product.image %}<img src="{{ product.image.url }}" class="w-20 h-20 rounded-xl object-cover">{% else %}<div class="w-20 h-20 bg-primary-100 rounded-xl flex items-center justify-center"><i class="fas fa-book text-primary-400 text-2xl"></i></div>{% endif %}
+          {% if product.image %}<img src="{{ product.image.url }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover flex-shrink-0">{% else %}<div class="w-16 h-16 sm:w-20 sm:h-20 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0"><i class="fas fa-book text-primary-400 text-2xl"></i></div>{% endif %}
           <div>
-            <h2 class="font-display text-2xl font-bold text-gray-800">{{ product.name }}</h2>
+            <h2 class="font-display text-xl sm:text-2xl font-bold text-gray-800">{{ product.name }}</h2>
             {% if product.author %}<p class="text-gray-500">by {{ product.author }}</p>{% endif %}
-            <div class="flex gap-2 mt-2">
+            <div class="flex gap-2 mt-2 flex-wrap">
               <span class="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 rounded-full">{{ product.get_product_type_display }}</span>
               {% if product.category %}<span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ product.category.name }}</span>{% endif %}
             </div>
           </div>
         </div>
         {% if user_can_write %}
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <a href="{% url 'product_edit' product.pk %}" class="bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"><i class="fas fa-pen mr-1"></i>Edit</a>
           <a href="{% url 'adjust_stock' product.pk %}" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"><i class="fas fa-boxes-stacked mr-1"></i>Stock</a>
           <form method="post" action="{% url 'product_delete' product.pk %}" class="inline"
@@ -41,7 +41,8 @@
 
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-gray-100"><h3 class="font-semibold text-gray-700">Recent Stock Movements</h3></div>
-      <div class="overflow-x-auto">
+      <!-- Desktop table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="bg-gray-50"><tr>
             <th class="text-left px-4 py-2 text-gray-500 font-medium text-xs">Type</th>
@@ -66,6 +67,23 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+      <!-- Mobile list -->
+      <div class="sm:hidden divide-y divide-gray-100">
+        {% for m in movements %}
+        <div class="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="{% if m.movement_type == 'in' %}bg-green-100 text-green-700{% elif m.movement_type == 'out' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-600{% endif %} text-xs px-2 py-0.5 rounded-full">{{ m.get_movement_type_display }}</span>
+              <span class="font-semibold text-sm {% if m.movement_type == 'in' %}text-green-600{% else %}text-red-600{% endif %}">{% if m.movement_type == 'in' %}+{% else %}-{% endif %}{{ m.quantity }}</span>
+            </div>
+            <div class="text-xs text-gray-400">{{ m.previous_stock }} → {{ m.new_stock }} · {{ m.created_at|date:"d M Y" }}</div>
+          </div>
+          {% if m.reference %}<span class="text-xs text-gray-400 ml-2">{{ m.reference }}</span>{% endif %}
+        </div>
+        {% empty %}
+        <div class="text-center py-6 text-gray-400 text-sm">No movements recorded</div>
+        {% endfor %}
       </div>
     </div>
   </div>

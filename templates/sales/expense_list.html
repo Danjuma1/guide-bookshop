@@ -36,7 +36,8 @@
   {% endif %}
 
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
-    <div class="overflow-x-auto">
+    <!-- Desktop table -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-sage-100 bg-sage-50">
@@ -81,7 +82,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="text-center py-14">
+            <td colspan="6" class="text-center py-14">
               <div class="flex flex-col items-center">
                 <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
                   <i class="fas fa-wallet text-3xl text-primary-300"></i>
@@ -93,6 +94,41 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="md:hidden divide-y divide-sage-100">
+      {% for e in expenses %}
+      <div class="p-4 hover:bg-sage-50 transition-colors">
+        <div class="flex items-start justify-between mb-1.5">
+          <div class="font-semibold text-gray-800 text-sm">{{ e.title }}</div>
+          <span class="font-bold text-red-600 text-sm">&#8358;{{ e.amount|currency }}</span>
+        </div>
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">{{ e.get_category_display }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-gray-400">{{ e.expense_date|date:"d M Y" }} · {{ e.recorded_by.get_full_name|default:e.recorded_by.username }}</div>
+          {% if user_can_write %}
+          <div class="flex items-center gap-1">
+            <a href="{% url 'expense_edit' e.pk %}" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"><i class="fas fa-pen text-xs"></i></a>
+            <form method="post" action="{% url 'expense_delete' e.pk %}" onsubmit="return confirm('Delete this expense?')">{% csrf_token %}
+              <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"><i class="fas fa-trash text-xs"></i></button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-10 text-center">
+        <div class="flex flex-col items-center">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+            <i class="fas fa-wallet text-3xl text-primary-300"></i>
+          </div>
+          <p class="text-gray-500 font-medium">No expenses recorded</p>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

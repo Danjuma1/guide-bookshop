@@ -3,7 +3,8 @@
 {% block page_title %}Stock Movements{% endblock %}
 {% block content %}
 <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
-  <div class="overflow-x-auto">
+  <!-- Desktop -->
+  <div class="hidden md:block overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-sage-100 bg-sage-50">
@@ -52,6 +53,30 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="md:hidden divide-y divide-sage-100">
+    {% for m in movements %}
+    <div class="p-4 hover:bg-sage-50 transition-colors">
+      <div class="flex items-start justify-between mb-1">
+        <div class="font-semibold text-gray-800 text-sm">{{ m.product.name }}</div>
+        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full
+          {% if m.movement_type == 'in' %}bg-primary-50 text-primary-700
+          {% elif m.movement_type == 'out' %}bg-blue-50 text-blue-700
+          {% else %}bg-orange-50 text-orange-700{% endif %}">
+          {{ m.get_movement_type_display }}
+        </span>
+      </div>
+      <div class="flex gap-4 text-xs text-gray-500 mt-1">
+        <span>Qty: <span class="font-bold {% if m.movement_type == 'in' %}text-primary-600{% else %}text-red-600{% endif %}">{{ m.quantity }}</span></span>
+        <span>{{ m.previous_stock }} → {{ m.new_stock }}</span>
+      </div>
+      <div class="text-xs text-gray-400 mt-1">{{ m.created_at|date:"d M Y H:i" }} · {{ m.created_by.get_full_name|default:m.created_by.username }}</div>
+    </div>
+    {% empty %}
+    <div class="p-10 text-center"><p class="text-gray-500 font-medium">No stock movements yet</p></div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}

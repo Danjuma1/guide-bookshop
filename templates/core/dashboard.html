@@ -29,7 +29,7 @@
           <i class="fas fa-naira-sign text-primary-600 text-sm"></i>
         </div>
       </div>
-      <div class="text-2xl font-bold text-gray-800">&#8358;{{ today_revenue|currency }}</div>
+      <div class="text-xl sm:text-2xl font-bold text-gray-800">&#8358;{{ today_revenue|currency }}</div>
       <div class="flex items-center gap-1.5 mt-2">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">{{ today_transactions }} sale{{ today_transactions|pluralize }}</span>
       </div>
@@ -44,7 +44,7 @@
           <i class="fas fa-chart-line text-blue-600 text-sm"></i>
         </div>
       </div>
-      <div class="text-2xl font-bold text-gray-800">&#8358;{{ monthly_revenue|currency }}</div>
+      <div class="text-xl sm:text-2xl font-bold text-gray-800">&#8358;{{ monthly_revenue|currency }}</div>
       <div class="flex items-center gap-1.5 mt-2">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{{ monthly_transactions }} sale{{ monthly_transactions|pluralize }}</span>
       </div>
@@ -59,7 +59,7 @@
           <i class="fas fa-boxes-stacked text-violet-600 text-sm"></i>
         </div>
       </div>
-      <div class="text-2xl font-bold text-gray-800">{{ total_products }}</div>
+      <div class="text-xl sm:text-2xl font-bold text-gray-800">{{ total_products }}</div>
       <div class="mt-2">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">Active products</span>
       </div>
@@ -74,7 +74,7 @@
           <i class="fas fa-triangle-exclamation text-orange-500 text-sm"></i>
         </div>
       </div>
-      <div class="text-2xl font-bold text-gray-800">{{ low_stock_count }}</div>
+      <div class="text-xl sm:text-2xl font-bold text-gray-800">{{ low_stock_count }}</div>
       <div class="mt-2">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">{{ out_of_stock }} out of stock</span>
       </div>
@@ -185,7 +185,8 @@
         </div>
         <a href="{% url 'sale_list' %}" class="text-xs font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">View All</a>
       </div>
-      <div class="overflow-x-auto">
+      <!-- Desktop table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr class="border-b border-sage-100">
@@ -212,6 +213,20 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+      <!-- Mobile list -->
+      <div class="sm:hidden divide-y divide-sage-100">
+        {% for sale in recent_sales %}
+        <div class="flex items-center justify-between px-4 py-3 hover:bg-sage-50 transition-colors">
+          <div>
+            <a href="{% url 'sale_detail' sale.pk %}" class="text-primary-600 font-semibold text-sm">{{ sale.invoice_number }}</a>
+            <div class="text-xs text-gray-500 mt-0.5">{{ sale.customer.name|default:"Walk-in" }} · {{ sale.sale_date|date:"d M" }}</div>
+          </div>
+          <span class="text-sm font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</span>
+        </div>
+        {% empty %}
+        <div class="text-center py-10 text-gray-400 text-sm">No sales yet</div>
+        {% endfor %}
       </div>
     </div>
 

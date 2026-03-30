@@ -107,29 +107,29 @@
 <!-- Top Bar -->
 <div class="bg-primary-950 text-primary-300 text-xs py-2 border-b border-primary-900">
   <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
-    <div class="flex items-center gap-5">
+    <div class="hidden sm:flex items-center gap-5">
       {% if site_settings %}
       <span class="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
         <i class="fas fa-phone-alt text-primary-500"></i>{{ site_settings.phone }}
       </span>
-      <span class="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
+      <span class="hidden md:flex items-center gap-1.5 hover:text-primary-100 transition-colors">
         <i class="fas fa-envelope text-primary-500"></i>{{ site_settings.email }}
       </span>
       {% endif %}
     </div>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 hover:text-white transition-colors group">
           <div class="w-5 h-5 bg-primary-700 rounded-full flex items-center justify-center group-hover:bg-primary-600">
             <i class="fas fa-tachometer-alt text-xs"></i>
           </div>
-          Staff Portal
+          <span class="hidden sm:inline">Staff Portal</span>
         </a>
         <span class="text-primary-700">|</span>
         <a href="{% url 'logout' %}" class="hover:text-white transition-colors">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="flex items-center gap-1.5 hover:text-white transition-colors">
-          <i class="fas fa-user-circle"></i> Staff Login
+          <i class="fas fa-user-circle"></i> <span class="hidden sm:inline">Staff Login</span>
         </a>
       {% endif %}
     </div>
