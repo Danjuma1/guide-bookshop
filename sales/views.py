@@ -496,7 +496,7 @@ def import_customers(request):
 
 
 @login_required
-@module_required('sales')
+@module_required('pos')
 def sale_receipt(request, pk):
     sale = get_object_or_404(Sale, pk=pk)
     return render(request, 'sales/pos_receipt.html', {'sale': sale})

@@ -428,7 +428,7 @@ function showReceipt(data) {
 }
 
 function printReceipt() {
-  if (currentSaleId) window.open('/sales/' + currentSaleId + '/receipt/', '_blank');
+  if (currentSaleId) window.open('{% url "sale_receipt" 0 %}'.replace('/0/', '/' + currentSaleId + '/'), '_blank');
 }
 
 function newSale() {
