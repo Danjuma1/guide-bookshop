@@ -1,5 +1,28 @@
 {% extends 'base_public.html' %}
-{% block title %}Guide Bookshop & Stationeries - Your Knowledge Partner{% endblock %}
+{% block title %}Guide Bookshop & Stationeries - Books, Stationery & Educational Materials Nigeria{% endblock %}
+{% block meta_description %}Guide Bookshop & Stationeries — Nigeria's trusted bookshop. Shop thousands of books, quality stationery, art supplies and educational materials online. Fast delivery nationwide.{% endblock %}
+{% block og_title %}Guide Bookshop & Stationeries - Your Knowledge Partner{% endblock %}
+{% block og_description %}Nigeria's trusted bookshop. Shop thousands of books, quality stationery, art supplies and educational materials online. Fast delivery nationwide.{% endblock %}
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BookStore",
+  "name": "Guide Bookshop & Stationeries",
+  "description": "Nigeria's trusted source for books, stationery, art supplies, and educational materials.",
+  "url": "https://guidebookshop.com.ng",
+  {% if site_settings and site_settings.logo %}"logo": "https://guidebookshop.com.ng{{ site_settings.logo.url }}",{% endif %}
+  {% if site_settings and site_settings.phone %}"telephone": "{{ site_settings.phone }}",{% endif %}
+  {% if site_settings and site_settings.email %}"email": "{{ site_settings.email }}",{% endif %}
+  {% if site_settings and site_settings.address %}"address": {"@type": "PostalAddress", "addressCountry": "NG", "streetAddress": "{{ site_settings.address|escapejs }}"},{% endif %}
+  "sameAs": [
+    {% if site_settings and site_settings.facebook_url %}"{{ site_settings.facebook_url }}"{% if site_settings.instagram_url or site_settings.twitter_url %},{% endif %}{% endif %}
+    {% if site_settings and site_settings.instagram_url %}"{{ site_settings.instagram_url }}"{% if site_settings.twitter_url %},{% endif %}{% endif %}
+    {% if site_settings and site_settings.twitter_url %}"{{ site_settings.twitter_url }}"{% endif %}
+  ]
+}
+</script>
+{% endblock %}
 {% block content %}
 
 <!-- Hero -->

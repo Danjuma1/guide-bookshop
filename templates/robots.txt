@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /accounts/
+Disallow: /inventory/
+Disallow: /sales/
+Disallow: /shop/cart/
+Disallow: /shop/checkout/
+Disallow: /shop/orders/manage/
+
+Sitemap: https://guidebookshop.com.ng/sitemap.xml

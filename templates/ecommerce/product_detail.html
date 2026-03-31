@@ -1,5 +1,35 @@
 {% extends 'base_public.html' %}
-{% block title %}{{ product.name }} - Guide Bookshop{% endblock %}
+{% block title %}{{ product.name }}{% if product.author %} by {{ product.author }}{% endif %} - Guide Bookshop{% endblock %}
+{% block meta_description %}Buy {{ product.name }}{% if product.author %} by {{ product.author }}{% endif %}{% if product.category %} in {{ product.category.name }}{% endif %}. {{ product.description|truncatewords:20 }} Available at Guide Bookshop & Stationeries, Nigeria.{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }} - Guide Bookshop{% endblock %}
+{% block og_description %}{{ product.description|truncatewords:30 }}{% endblock %}
+{% block og_image %}{% if product.image %}https://guidebookshop.com.ng{{ product.image.url }}{% endif %}{% endblock %}
+{% block twitter_title %}{{ product.name }} - Guide Bookshop{% endblock %}
+{% block twitter_description %}{{ product.description|truncatewords:30 }}{% endblock %}
+{% block twitter_image %}{% if product.image %}https://guidebookshop.com.ng{{ product.image.url }}{% endif %}{% endblock %}
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.description|escapejs }}",
+  {% if product.image %}"image": "https://guidebookshop.com.ng{{ product.image.url }}",{% endif %}
+  {% if product.isbn %}"isbn": "{{ product.isbn }}",{% endif %}
+  {% if product.author %}"author": {"@type": "Person", "name": "{{ product.author|escapejs }}"},{% endif %}
+  {% if product.publisher %}"publisher": {"@type": "Organization", "name": "{{ product.publisher|escapejs }}"},{% endif %}
+  "offers": {
+    "@type": "Offer",
+    "url": "https://guidebookshop.com.ng{{ request.path }}",
+    "priceCurrency": "NGN",
+    "price": "{{ product.effective_price }}",
+    "availability": "{% if product.quantity_in_stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "seller": {"@type": "Organization", "name": "Guide Bookshop & Stationeries"}
+  }
+}
+</script>
+{% endblock %}
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-10">
 

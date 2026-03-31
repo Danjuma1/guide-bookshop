@@ -123,25 +123,28 @@ const products = [{% for p in products %}{ id:{{ p.id }}, name:'{{ p.name|escape
 function addItem() {
   const container = document.getElementById('items-container');
   const div = document.createElement('div');
-  div.className = 'grid grid-cols-12 gap-3 items-center bg-sage-50 rounded-xl p-3 border border-sage-200';
+  div.className = 'grid grid-cols-12 gap-2 items-center bg-sage-50 rounded-xl p-3 border border-sage-200';
   const opts = products.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('');
   div.innerHTML = `
-    <div class="col-span-5">
+    <div class="col-span-12 sm:col-span-5">
+      <label class="block text-xs text-gray-400 font-medium mb-1 sm:hidden">Product</label>
       <select name="product_id" onchange="updatePrice(this)" class="w-full border border-sage-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none font-medium text-gray-700">
         <option value="">Select product</option>${opts}
       </select>
     </div>
-    <div class="col-span-3">
+    <div class="col-span-5 sm:col-span-3">
+      <label class="block text-xs text-gray-400 font-medium mb-1 sm:hidden">Quantity</label>
       <input type="number" name="quantity" min="1" value="1" onchange="updateTotal()"
              class="w-full border border-sage-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none font-medium">
     </div>
-    <div class="col-span-3">
+    <div class="col-span-5 sm:col-span-3">
+      <label class="block text-xs text-gray-400 font-medium mb-1 sm:hidden">Unit Price</label>
       <input type="number" name="unit_price" step="0.01" placeholder="Price" onchange="updateTotal()"
              class="w-full border border-sage-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none font-medium">
     </div>
-    <div class="col-span-1 flex justify-center">
+    <div class="col-span-2 sm:col-span-1 flex justify-center items-end sm:items-center pb-0 sm:pb-0" style="padding-top:1.25rem">
       <button type="button" onclick="this.closest('.grid').remove(); updateTotal()"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
         <i class="fas fa-times text-xs"></i>
       </button>
     </div>

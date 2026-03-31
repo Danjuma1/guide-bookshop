@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.sitemaps',
     'core',
     'inventory',
     'sales',
@@ -116,6 +117,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # --- Misc -----------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SITE_URL = os.environ.get('SITE_URL', 'https://guidebookshop.com.ng')
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'

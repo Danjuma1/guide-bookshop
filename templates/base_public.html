@@ -4,6 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Guide Bookshop & Stationeries{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Guide Bookshop & Stationeries — Nigeria's trusted source for books, stationery, art supplies, and educational materials. Shop online with fast delivery.{% endblock %}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://guidebookshop.com.ng{{ request.path }}">
+  <link rel="icon" type="image/png" href="{% if site_settings and site_settings.logo %}{{ site_settings.logo.url }}{% else %}https://guidebookshop.com.ng/static/img/favicon.png{% endif %}">
+  <!-- Open Graph -->
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}Guide Bookshop & Stationeries{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Nigeria's trusted source for books, stationery, art supplies, and educational materials.{% endblock %}">
+  <meta property="og:url" content="https://guidebookshop.com.ng{{ request.path }}">
+  <meta property="og:image" content="{% block og_image %}{% if site_settings and site_settings.logo %}https://guidebookshop.com.ng{{ site_settings.logo.url }}{% endif %}{% endblock %}">
+  <meta property="og:site_name" content="Guide Bookshop & Stationeries">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}Guide Bookshop & Stationeries{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}Nigeria's trusted source for books, stationery, art supplies, and educational materials.{% endblock %}">
+  <meta name="twitter:image" content="{% block twitter_image %}{% if site_settings and site_settings.logo %}https://guidebookshop.com.ng{{ site_settings.logo.url }}{% endif %}{% endblock %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
