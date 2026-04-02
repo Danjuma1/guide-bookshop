@@ -4,12 +4,13 @@ from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
 from datetime import date, timedelta
 import json, csv, io
 from decimal import Decimal
 from .models import Sale, SaleItem, Customer, Expense, DailySummary
 from inventory.models import Product, StockMovement
-from accounts.decorators import module_required, write_required
+from accounts.decorators import module_required, write_required, admin_required
 
 
 @login_required
@@ -20,18 +21,8 @@ def sale_list(request):
     status = request.GET.get('status', '')
     payment = request.GET.get('payment', '')
     q = request.GET.get('q', '')
-    sort = request.GET.get('sort', '-sale_date')
 
-    db_sorts = {
-        'sale_date', '-sale_date',
-        'invoice_number', '-invoice_number',
-        'customer__name', '-customer__name',
-    }
-    if sort not in db_sorts and sort not in ('total_amount', '-total_amount'):
-        sort = '-sale_date'
-
-    db_sort = sort if sort in db_sorts else '-sale_date'
-    sales = Sale.objects.select_related('customer', 'served_by').order_by(db_sort)
+    sales = Sale.objects.select_related('customer', 'served_by').order_by('-sale_date')
 
     if date_from:
         sales = sales.filter(sale_date__date__gte=date_from)
@@ -44,17 +35,29 @@ def sale_list(request):
     if q:
         sales = sales.filter(Q(invoice_number__icontains=q) | Q(customer__name__icontains=q))
 
-    sales = list(sales)
-    if sort == 'total_amount':
-        sales.sort(key=lambda s: s.total_amount)
-    elif sort == '-total_amount':
-        sales.sort(key=lambda s: s.total_amount, reverse=True)
+    # Paginate before grouping
+    paginator = Paginator(sales, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    page_sales = list(page_obj)
+
+    # Group by date
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    groups = {}
+    for sale in page_sales:
+        d = sale.sale_date.date()
+        groups.setdefault(d, []).append(sale)
+    grouped_sales = sorted(groups.items(), reverse=True)
 
     total_revenue = sum(s.total_amount for s in sales if s.status == 'completed')
     return render(request, 'sales/sale_list.html', {
-        'sales': sales, 'total_revenue': total_revenue,
+        'grouped_sales': grouped_sales,
+        'page_obj': page_obj,
+        'total_revenue': total_revenue,
+        'today': today,
+        'yesterday': yesterday,
         'date_from': date_from, 'date_to': date_to,
-        'status': status, 'payment': payment, 'q': q, 'sort': sort,
+        'status': status, 'payment': payment, 'q': q,
     })
 
 
@@ -137,6 +140,47 @@ def new_sale(request):
 def sale_detail(request, pk):
     sale = get_object_or_404(Sale, pk=pk)
     return render(request, 'sales/sale_detail.html', {'sale': sale})
+
+
+@login_required
+@module_required('sales')
+@write_required
+def sale_edit(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    if request.method == 'POST':
+        sale.status = request.POST.get('status', sale.status)
+        sale.payment_method = request.POST.get('payment_method', sale.payment_method)
+        sale.discount_amount = Decimal(str(request.POST.get('discount_amount', sale.discount_amount) or 0))
+        sale.notes = request.POST.get('notes', sale.notes)
+        sale.save()
+        messages.success(request, f'Sale {sale.invoice_number} updated.')
+        return redirect('sale_detail', pk=sale.pk)
+    return render(request, 'sales/sale_edit.html', {'sale': sale})
+
+
+@login_required
+@module_required('sales')
+@write_required
+def sale_delete(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    if request.method == 'POST':
+        # Restore stock for each item
+        for item in sale.items.all():
+            product = item.product
+            prev = product.quantity_in_stock
+            product.quantity_in_stock += item.quantity
+            product.save()
+            StockMovement.objects.create(
+                product=product, movement_type='adjustment',
+                quantity=item.quantity, previous_stock=prev,
+                new_stock=product.quantity_in_stock,
+                reference=f'VOID-{sale.invoice_number}',
+                created_by=request.user,
+            )
+        sale.delete()
+        messages.success(request, 'Sale deleted and stock restored.')
+        return redirect('sale_list')
+    return render(request, 'sales/sale_confirm_delete.html', {'sale': sale})
 
 
 @login_required

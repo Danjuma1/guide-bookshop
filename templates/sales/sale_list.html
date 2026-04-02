@@ -8,7 +8,6 @@
   <div class="bg-white rounded-2xl border border-sage-200 p-5">
     <div class="flex flex-col gap-3">
       <form method="get" id="filter-form" class="flex flex-wrap gap-3 items-end">
-        <input type="hidden" name="sort" value="{{ sort }}">
         <div class="relative">
           <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
           <input type="text" name="q" value="{{ q }}"
@@ -72,159 +71,226 @@
       </div>
       <div>
         <div class="text-xs font-semibold text-primary-700 uppercase tracking-wider">Total Revenue (filtered)</div>
-        <div class="text-xs text-primary-500 mt-0.5">{{ sales|length }} sale{{ sales|length|pluralize }}</div>
+        <div class="text-xs text-primary-500 mt-0.5">{{ page_obj.paginator.count }} sale{{ page_obj.paginator.count|pluralize }}</div>
       </div>
     </div>
     <span class="text-primary-700 font-bold text-2xl">&#8358;{{ total_revenue|currency }}</span>
   </div>
   {% endif %}
 
-  <!-- Table -->
-  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
-    <!-- Desktop table -->
-    <div class="hidden md:block overflow-x-auto">
-      <table class="w-full text-sm">
-        {% with qp=request.GET.urlencode %}
-        <thead>
-          <tr class="border-b border-sage-100 bg-sage-50">
-            <th class="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
-              <a href="?{% if sort == 'invoice_number' %}sort=-invoice_number{% else %}sort=invoice_number{% endif %}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
-                 class="flex items-center gap-1 {% if sort == 'invoice_number' or sort == '-invoice_number' %}text-primary-600{% else %}text-gray-400{% endif %} hover:text-primary-600 transition-colors">
-                Invoice
-                <i class="fas {% if sort == 'invoice_number' %}fa-sort-up{% elif sort == '-invoice_number' %}fa-sort-down{% else %}fa-sort{% endif %} text-xs opacity-60"></i>
-              </a>
-            </th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
-              <a href="?{% if sort == 'customer__name' %}sort=-customer__name{% else %}sort=customer__name{% endif %}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
-                 class="flex items-center gap-1 {% if sort == 'customer__name' or sort == '-customer__name' %}text-primary-600{% else %}text-gray-400{% endif %} hover:text-primary-600 transition-colors">
-                Customer
-                <i class="fas {% if sort == 'customer__name' %}fa-sort-up{% elif sort == '-customer__name' %}fa-sort-down{% else %}fa-sort{% endif %} text-xs opacity-60"></i>
-              </a>
-            </th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Items</th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
-              <a href="?{% if sort == 'total_amount' %}sort=-total_amount{% else %}sort=total_amount{% endif %}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
-                 class="flex items-center gap-1 {% if sort == 'total_amount' or sort == '-total_amount' %}text-primary-600{% else %}text-gray-400{% endif %} hover:text-primary-600 transition-colors">
-                Total
-                <i class="fas {% if sort == 'total_amount' %}fa-sort-up{% elif sort == '-total_amount' %}fa-sort-down{% else %}fa-sort{% endif %} text-xs opacity-60"></i>
-              </a>
-            </th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Payment</th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Staff</th>
-            <th class="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
-              <a href="?{% if sort == 'sale_date' %}sort=-sale_date{% else %}sort=sale_date{% endif %}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
-                 class="flex items-center gap-1 {% if sort == 'sale_date' or sort == '-sale_date' %}text-primary-600{% else %}text-gray-400{% endif %} hover:text-primary-600 transition-colors">
-                Date
-                <i class="fas {% if sort == 'sale_date' %}fa-sort-up{% elif sort == '-sale_date' %}fa-sort-down{% else %}fa-sort{% endif %} text-xs opacity-60"></i>
-              </a>
-            </th>
-            <th class="px-5 py-3.5"></th>
-          </tr>
-        </thead>
-        {% endwith %}
-        <tbody>
-          {% for sale in sales %}
-          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
-            <td class="px-5 py-3.5">
-              <a href="{% url 'sale_detail' sale.pk %}" class="font-semibold text-primary-600 hover:text-primary-800">{{ sale.invoice_number }}</a>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-2">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+  <!-- Date-grouped Sales -->
+  {% if grouped_sales %}
+    {% for sale_date, day_sales in grouped_sales %}
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <!-- Date header -->
+      <div class="px-5 py-3 border-b border-sage-100 flex items-center gap-3"
+           style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+          <i class="fas fa-calendar-day text-white text-xs"></i>
+        </div>
+        <div class="flex items-center gap-2 flex-1">
+          <span class="font-bold text-gray-800 text-sm">
+            {% if sale_date == today %}
+              Today
+            {% elif sale_date == yesterday %}
+              Yesterday
+            {% else %}
+              {{ sale_date|date:"l, d F Y" }}
+            {% endif %}
+          </span>
+          {% if sale_date == today %}
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Today</span>
+          {% endif %}
+          <span class="text-xs text-gray-400 ml-auto">{{ day_sales|length }} sale{{ day_sales|length|pluralize }}</span>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-sage-100 bg-sage-50">
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Invoice</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Items</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Total</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Payment</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Staff</th>
+              <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Time</th>
+              <th class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in day_sales %}
+            <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+              <td class="px-5 py-3.5">
+                <a href="{% url 'sale_detail' sale.pk %}" class="font-semibold text-primary-600 hover:text-primary-800">{{ sale.invoice_number }}</a>
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                       style="background:linear-gradient(135deg,#86efac,#22c55e)">
+                    {{ sale.customer.name.0|default:"W"|upper }}
+                  </div>
+                  <span class="text-gray-700 font-medium text-sm">{{ sale.customer.name|default:"Walk-in" }}</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5">
+                <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-1 rounded-lg">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <span class="font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+                  {% if sale.payment_method == 'cash' %}bg-green-50 text-green-700
+                  {% elif sale.payment_method == 'card' %}bg-blue-50 text-blue-700
+                  {% elif sale.payment_method == 'transfer' %}bg-purple-50 text-purple-700
+                  {% else %}bg-gray-100 text-gray-600{% endif %}">
+                  {{ sale.get_payment_method_display }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-gray-500">{{ sale.served_by.get_full_name|default:sale.served_by.username }}</td>
+              <td class="px-5 py-3.5 text-xs text-gray-400">{{ sale.sale_date|date:"H:i" }}</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center justify-end gap-1">
+                  <a href="{% url 'sale_invoice' sale.pk %}"
+                     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all" title="Print Invoice">
+                    <i class="fas fa-print text-xs"></i>
+                  </a>
+                  {% if request.user.is_superuser or request.user.staff_profile.can_write %}
+                  <a href="{% url 'sale_edit' sale.pk %}"
+                     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Edit Sale">
+                    <i class="fas fa-pen text-xs"></i>
+                  </a>
+                  <a href="{% url 'sale_delete' sale.pk %}"
+                     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete Sale">
+                    <i class="fas fa-trash text-xs"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="md:hidden divide-y divide-sage-100">
+        {% for sale in day_sales %}
+        <div class="p-4 hover:bg-sage-50 transition-colors">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <a href="{% url 'sale_detail' sale.pk %}" class="font-bold text-primary-600 text-sm">{{ sale.invoice_number }}</a>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <div class="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                      style="background:linear-gradient(135deg,#86efac,#22c55e)">
                   {{ sale.customer.name.0|default:"W"|upper }}
                 </div>
-                <span class="text-gray-700 font-medium text-sm">{{ sale.customer.name|default:"Walk-in" }}</span>
+                <span class="text-gray-600 text-sm">{{ sale.customer.name|default:"Walk-in" }}</span>
               </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-1 rounded-lg">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</span>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</span>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</div>
+              <span class="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full
                 {% if sale.payment_method == 'cash' %}bg-green-50 text-green-700
                 {% elif sale.payment_method == 'card' %}bg-blue-50 text-blue-700
                 {% elif sale.payment_method == 'transfer' %}bg-purple-50 text-purple-700
                 {% else %}bg-gray-100 text-gray-600{% endif %}">
                 {{ sale.get_payment_method_display }}
               </span>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-gray-500">{{ sale.served_by.get_full_name|default:sale.served_by.username }}</td>
-            <td class="px-5 py-3.5 text-xs text-gray-400">{{ sale.sale_date|date:"d M Y H:i" }}</td>
-            <td class="px-5 py-3.5">
-              <a href="{% url 'sale_invoice' sale.pk %}"
-                 class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all" title="Print Invoice">
-                <i class="fas fa-print text-xs"></i>
-              </a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="8" class="text-center py-16">
-              <div class="flex flex-col items-center">
-                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
-                  <i class="fas fa-receipt text-3xl text-primary-300"></i>
-                </div>
-                <p class="text-gray-500 font-medium">No sales found</p>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Mobile cards -->
-    <div class="md:hidden divide-y divide-sage-100">
-      {% for sale in sales %}
-      <div class="p-4 hover:bg-sage-50 transition-colors">
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <a href="{% url 'sale_detail' sale.pk %}" class="font-bold text-primary-600 text-sm">{{ sale.invoice_number }}</a>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <div class="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                   style="background:linear-gradient(135deg,#86efac,#22c55e)">
-                {{ sale.customer.name.0|default:"W"|upper }}
-              </div>
-              <span class="text-gray-600 text-sm">{{ sale.customer.name|default:"Walk-in" }}</span>
             </div>
           </div>
-          <div class="text-right">
-            <div class="font-bold text-gray-800">&#8358;{{ sale.total_amount|currency }}</div>
-            <span class="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full
-              {% if sale.payment_method == 'cash' %}bg-green-50 text-green-700
-              {% elif sale.payment_method == 'card' %}bg-blue-50 text-blue-700
-              {% elif sale.payment_method == 'transfer' %}bg-purple-50 text-purple-700
-              {% else %}bg-gray-100 text-gray-600{% endif %}">
-              {{ sale.get_payment_method_display }}
-            </span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-0.5 rounded-lg">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</span>
+              <span class="text-xs text-gray-400">{{ sale.sale_date|date:"H:i" }}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <a href="{% url 'sale_invoice' sale.pk %}"
+                 class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all">
+                <i class="fas fa-print text-xs"></i>
+              </a>
+              {% if request.user.is_superuser or request.user.staff_profile.can_write %}
+              <a href="{% url 'sale_edit' sale.pk %}"
+                 class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                <i class="fas fa-pen text-xs"></i>
+              </a>
+              <a href="{% url 'sale_delete' sale.pk %}"
+                 class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all">
+                <i class="fas fa-trash text-xs"></i>
+              </a>
+              {% endif %}
+            </div>
           </div>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-0.5 rounded-lg">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</span>
-            <span class="text-xs text-gray-400">{{ sale.sale_date|date:"d M Y" }}</span>
-          </div>
-          <a href="{% url 'sale_invoice' sale.pk %}"
-             class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all" title="Print Invoice">
-            <i class="fas fa-print text-xs"></i>
-          </a>
-        </div>
+        {% endfor %}
       </div>
-      {% empty %}
+    </div>
+    {% endfor %}
+
+  {% else %}
+    <!-- Today section always shown when no filters active and no sales -->
+    {% if not date_from and not date_to and not q and not status and not payment %}
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="px-5 py-3 border-b border-sage-100 flex items-center gap-3"
+           style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+          <i class="fas fa-calendar-day text-white text-xs"></i>
+        </div>
+        <span class="font-bold text-gray-800 text-sm">Today</span>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Today</span>
+      </div>
       <div class="p-10 text-center">
         <div class="flex flex-col items-center">
           <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
             <i class="fas fa-receipt text-3xl text-primary-300"></i>
           </div>
-          <p class="text-gray-500 font-medium">No sales found</p>
+          <p class="text-gray-500 font-medium">No sales today</p>
         </div>
       </div>
-      {% endfor %}
     </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-sage-200 p-10 text-center">
+      <div class="flex flex-col items-center">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+          <i class="fas fa-receipt text-3xl text-primary-300"></i>
+        </div>
+        <p class="text-gray-500 font-medium">No sales found</p>
+      </div>
+    </div>
+    {% endif %}
+  {% endif %}
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-center gap-2 py-2">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
+       class="w-9 h-9 flex items-center justify-center rounded-xl border border-sage-200 text-gray-500 hover:bg-sage-100 transition-colors text-sm">
+      <i class="fas fa-chevron-left text-xs"></i>
+    </a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+      <span class="w-9 h-9 flex items-center justify-center rounded-xl text-white text-sm font-bold"
+            style="background:linear-gradient(135deg,#16a34a,#14532d)">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <a href="?page={{ num }}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
+         class="w-9 h-9 flex items-center justify-center rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-100 transition-colors text-sm">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&payment={{ payment }}"
+       class="w-9 h-9 flex items-center justify-center rounded-xl border border-sage-200 text-gray-500 hover:bg-sage-100 transition-colors text-sm">
+      <i class="fas fa-chevron-right text-xs"></i>
+    </a>
+    {% endif %}
   </div>
+  {% endif %}
+
 </div>
 {% endblock %}

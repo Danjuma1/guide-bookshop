@@ -1,0 +1,46 @@
+{% extends 'base_admin.html' %}
+{% block title %}Delete Sale{% endblock %}
+{% block page_title %}Delete Sale{% endblock %}
+{% block content %}
+<div class="max-w-md">
+  <div class="mb-4">
+    <a href="{% url 'sale_detail' sale.pk %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Sale
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-red-200 overflow-hidden">
+    <div class="h-1 bg-red-500"></div>
+    <div class="p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 flex-shrink-0">
+          <i class="fas fa-trash text-red-500 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-bold text-gray-800">Delete Sale?</h2>
+          <p class="text-xs text-gray-400 font-mono mt-0.5">{{ sale.invoice_number }}</p>
+        </div>
+      </div>
+
+      <div class="bg-red-50 border border-red-100 rounded-xl p-4 mb-5 space-y-1.5 text-sm text-red-700">
+        <p><i class="fas fa-exclamation-triangle mr-1.5"></i>This action cannot be undone.</p>
+        <p><i class="fas fa-boxes mr-1.5"></i>Stock for all {{ sale.items.count }} item{{ sale.items.count|pluralize }} will be restored.</p>
+        <p><i class="fas fa-money-bill mr-1.5"></i>Sale total: <strong>&#8358;{{ sale.total_amount|currency }}</strong></p>
+      </div>
+
+      <form method="post" class="flex gap-3">
+        {% csrf_token %}
+        <button type="submit"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+          <i class="fas fa-trash mr-1.5"></i>Yes, Delete
+        </button>
+        <a href="{% url 'sale_detail' sale.pk %}"
+           class="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold bg-sage-100 text-gray-600 hover:bg-sage-200 transition-colors">
+          Cancel
+        </a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
