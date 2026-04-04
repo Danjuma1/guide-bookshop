@@ -142,7 +142,7 @@
           <span class="hidden sm:inline">Staff Portal</span>
         </a>
         <span class="text-primary-700">|</span>
-        <a href="{% url 'logout' %}" class="hover:text-white transition-colors">Logout</a>
+        <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button type="submit" class="hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer">Logout</button></form>
       {% else %}
         <a href="{% url 'login' %}" class="flex items-center gap-1.5 hover:text-white transition-colors">
           <i class="fas fa-user-circle"></i> <span class="hidden sm:inline">Staff Login</span>

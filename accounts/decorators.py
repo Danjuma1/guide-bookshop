@@ -35,12 +35,17 @@ def admin_required(view_func):
         if request.user.is_superuser:
             return view_func(request, *args, **kwargs)
         try:
-            if request.user.staff_profile.is_admin_level:
-                return view_func(request, *args, **kwargs)
+            profile = request.user.staff_profile
         except Exception:
-            pass
-        messages.error(request, "The dashboard is only accessible to admins.")
-        return redirect(_first_accessible_url(request.user))
+            messages.error(request, "Staff profile not found. Access denied.")
+            return redirect('login')
+        if not profile.is_active:
+            messages.error(request, "Your account is inactive.")
+            return redirect('login')
+        if not profile.is_admin_level:
+            messages.error(request, "The dashboard is only accessible to admins.")
+            return redirect(_first_accessible_url(request.user))
+        return view_func(request, *args, **kwargs)
     return wrapper
 
 
@@ -54,11 +59,16 @@ def module_required(module):
             if request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
             try:
-                if not request.user.staff_profile.has_module_access(module):
-                    messages.error(request, "You don't have permission to access that module.")
-                    return redirect(_first_accessible_url(request.user))
+                profile = request.user.staff_profile
             except Exception:
-                pass
+                messages.error(request, "Staff profile not found. Access denied.")
+                return redirect('login')
+            if not profile.is_active:
+                messages.error(request, "Your account is inactive.")
+                return redirect('login')
+            if not profile.has_module_access(module):
+                messages.error(request, "You don't have permission to access that module.")
+                return redirect(_first_accessible_url(request.user))
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
@@ -73,10 +83,15 @@ def write_required(view_func):
         if request.user.is_superuser:
             return view_func(request, *args, **kwargs)
         try:
-            if request.user.staff_profile.can_write:
-                return view_func(request, *args, **kwargs)
+            profile = request.user.staff_profile
         except Exception:
-            pass
-        messages.error(request, "You don't have permission to perform this action.")
-        return redirect(_first_accessible_url(request.user))
+            messages.error(request, "Staff profile not found. Access denied.")
+            return redirect('login')
+        if not profile.is_active:
+            messages.error(request, "Your account is inactive.")
+            return redirect('login')
+        if not profile.can_write:
+            messages.error(request, "You don't have permission to perform this action.")
+            return redirect(_first_accessible_url(request.user))
+        return view_func(request, *args, **kwargs)
     return wrapper

@@ -214,9 +214,11 @@
       <i class="fas fa-store w-4 text-center text-green-500 text-xs"></i><span>View Store</span>
     </a>
     {% endif %}
-    <a href="{% url 'logout' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-300 hover:text-red-300">
+    <form method="post" action="{% url 'logout' %}" class="w-full">{% csrf_token %}
+    <button type="submit" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-300 hover:text-red-300 bg-transparent border-0 cursor-pointer text-left">
       <i class="fas fa-right-from-bracket w-4 text-center text-green-500 text-xs"></i><span>Logout</span>
-    </a>
+    </button>
+    </form>
   </div>
 </aside>
 

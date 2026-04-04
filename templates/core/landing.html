@@ -142,9 +142,11 @@
               <span class="text-primary-700 font-bold">&#8358;{{ product.effective_price|currency }}</span>
               {% if product.discount_price %}<span class="text-gray-400 text-xs line-through ml-1">&#8358;{{ product.selling_price|currency }}</span>{% endif %}
             </div>
-            <a href="{% url 'add_to_cart' product.pk %}" class="bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors text-sm">
-              <i class="fas fa-cart-plus"></i>
-            </a>
+            <form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}
+              <button type="submit" class="bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors text-sm border-0 cursor-pointer">
+                <i class="fas fa-cart-plus"></i>
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -184,7 +186,9 @@
           <a href="{% url 'shop_product_detail' product.slug %}" class="font-medium text-gray-800 text-sm hover:text-primary-600 line-clamp-2 block mb-2 leading-snug">{{ product.name }}</a>
           <div class="flex items-center justify-between">
             <span class="text-primary-700 font-bold text-sm">&#8358;{{ product.effective_price|currency }}</span>
-            <a href="{% url 'add_to_cart' product.pk %}" class="bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700 transition-colors">Add</a>
+            <form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}
+              <button type="submit" class="bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700 transition-colors border-0 cursor-pointer">Add</button>
+            </form>
           </div>
         </div>
       </div>

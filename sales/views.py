@@ -94,6 +94,29 @@ def new_sale(request):
             except Customer.DoesNotExist:
                 pass
 
+        # Validate stock before creating the sale
+        line_items = []
+        for pid, qty, price in zip(product_ids, quantities, prices):
+            if not pid or not qty:
+                continue
+            try:
+                product = Product.objects.get(pk=pid, is_active=True)
+                qty_int = int(qty)
+                if qty_int < 1:
+                    messages.error(request, f'Invalid quantity for product ID {pid}.')
+                    return redirect('new_sale')
+                if product.quantity_in_stock < qty_int:
+                    messages.error(request, f'Insufficient stock for "{product.name}". Available: {product.quantity_in_stock}.')
+                    return redirect('new_sale')
+                line_items.append((product, qty_int, Decimal(str(price))))
+            except (Product.DoesNotExist, ValueError):
+                messages.error(request, f'Invalid product or quantity.')
+                return redirect('new_sale')
+
+        if not line_items:
+            messages.error(request, 'No valid items in sale.')
+            return redirect('new_sale')
+
         sale = Sale.objects.create(
             customer=customer,
             served_by=request.user,
@@ -104,26 +127,23 @@ def new_sale(request):
             payment_status=True,
         )
 
-        for pid, qty, price in zip(product_ids, quantities, prices):
-            if pid and qty:
-                product = Product.objects.get(pk=pid)
-                qty_int = int(qty)
-                SaleItem.objects.create(
-                    sale=sale, product=product,
-                    quantity=qty_int,
-                    unit_price=Decimal(str(price)),
-                    unit_cost=product.cost_price,
-                )
-                prev = product.quantity_in_stock
-                product.quantity_in_stock = max(0, product.quantity_in_stock - qty_int)
-                product.save()
-                StockMovement.objects.create(
-                    product=product, movement_type='out',
-                    quantity=qty_int, previous_stock=prev,
-                    new_stock=product.quantity_in_stock,
-                    reference=sale.invoice_number,
-                    created_by=request.user,
-                )
+        for product, qty_int, price in line_items:
+            SaleItem.objects.create(
+                sale=sale, product=product,
+                quantity=qty_int,
+                unit_price=price,
+                unit_cost=product.cost_price,
+            )
+            prev = product.quantity_in_stock
+            product.quantity_in_stock = max(0, product.quantity_in_stock - qty_int)
+            product.save()
+            StockMovement.objects.create(
+                product=product, movement_type='out',
+                quantity=qty_int, previous_stock=prev,
+                new_stock=product.quantity_in_stock,
+                reference=sale.invoice_number,
+                created_by=request.user,
+            )
 
         messages.success(request, f'Sale {sale.invoice_number} recorded successfully.')
         return redirect('sale_detail', pk=sale.pk)
@@ -407,9 +427,25 @@ def process_sale_api(request):
         try:
             data = json.loads(request.body)
             items = data.get('items', [])
+            if not items:
+                return JsonResponse({'success': False, 'error': 'No items in sale.'}, status=400)
             payment_method = data.get('payment_method', 'cash')
             discount = Decimal(str(data.get('discount', 0) or 0))
-            customer_name = data.get('customer_name', '')
+            customer_name = data.get('customer_name', '').strip()[:200]
+
+            # Validate stock before touching anything
+            products_to_update = []
+            for item in items:
+                try:
+                    product = Product.objects.get(pk=item['id'])
+                except Product.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': f'Product ID {item["id"]} not found.'}, status=400)
+                qty = int(item['quantity'])
+                if qty < 1:
+                    return JsonResponse({'success': False, 'error': f'Invalid quantity for "{product.name}".'}, status=400)
+                if product.quantity_in_stock < qty:
+                    return JsonResponse({'success': False, 'error': f'Insufficient stock for "{product.name}". Available: {product.quantity_in_stock}.'}, status=400)
+                products_to_update.append((product, qty, item['price']))
 
             customer = None
             if customer_name:
@@ -427,13 +463,11 @@ def process_sale_api(request):
                 payment_status=True,
             )
 
-            for item in items:
-                product = Product.objects.get(pk=item['id'])
-                qty = int(item['quantity'])
+            for product, qty, price in products_to_update:
                 SaleItem.objects.create(
                     sale=sale, product=product,
                     quantity=qty,
-                    unit_price=Decimal(str(item['price'])),
+                    unit_price=Decimal(str(price)),
                     unit_cost=product.cost_price,
                 )
                 prev = product.quantity_in_stock
@@ -453,9 +487,11 @@ def process_sale_api(request):
                 'total': float(sale.total_amount),
                 'sale_id': sale.pk,
             })
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-    return JsonResponse({'success': False}, status=405)
+        except (ValueError, KeyError):
+            return JsonResponse({'success': False, 'error': 'Invalid request data.'}, status=400)
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'An error occurred processing the sale.'}, status=500)
+    return JsonResponse({'success': False, 'error': 'Method not allowed.'}, status=405)
 
 
 def _parse_upload(file):

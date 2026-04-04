@@ -119,9 +119,11 @@
                 {% if product.discount_price %}<div class="text-gray-400 text-xs line-through">&#8358;{{ product.selling_price|currency }}</div>{% endif %}
               </div>
               {% if product.quantity_in_stock > 0 %}
-              <a href="{% url 'add_to_cart' product.pk %}" class="bg-primary-600 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm">
-                <i class="fas fa-cart-plus text-sm"></i>
-              </a>
+              <form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}
+                <button type="submit" class="bg-primary-600 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm border-0 cursor-pointer">
+                  <i class="fas fa-cart-plus text-sm"></i>
+                </button>
+              </form>
               {% endif %}
             </div>
           </div>
