@@ -191,6 +191,9 @@
     <a href="{% url 'reports' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'reports' %}active{% else %}text-green-200{% endif %}">
       <i class="fas fa-chart-bar w-4 text-center text-green-400 text-xs"></i><span>Reports</span>
     </a>
+    <a href="{% url 'daily_report' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'daily_report,daily_report_detail' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-calendar-day w-4 text-center text-green-400 text-xs"></i><span>Daily Report</span>
+    </a>
     {% endif %}
     {% if user_modules.staff %}
     <a href="{% url 'staff_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'staff_list,staff_add,staff_edit,profile' %}active{% else %}text-green-200{% endif %}">

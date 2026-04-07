@@ -1,0 +1,297 @@
+{% extends 'base_admin.html' %}
+{% block title %}Daily Sales Report{% endblock %}
+{% block page_title %}Daily Sales Report{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Month Selector -->
+  <div class="bg-white rounded-2xl border border-sage-200 p-4 flex items-center gap-4 flex-wrap">
+    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Month:</span>
+    <form method="get" class="flex items-center gap-2">
+      <input type="month" name="month" value="{{ month }}"
+             class="border border-sage-200 rounded-xl px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400">
+      <button type="submit"
+              class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all"
+              style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        View
+      </button>
+    </form>
+    <div class="ml-auto text-sm text-gray-500">
+      {{ period_start|date:"d M Y" }} &mdash; {{ period_end|date:"d M Y" }}
+    </div>
+  </div>
+
+  <!-- Period Summary Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <i class="fas fa-naira-sign text-primary-600 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Revenue</div>
+      <div class="text-2xl font-bold text-gray-800">&#8358;{{ period_totals.revenue|currency }}</div>
+      <div class="text-xs text-primary-600 font-medium mt-1">{{ period_totals.transactions }} transaction{{ period_totals.transactions|pluralize }}</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-blue-50">
+        <i class="fas fa-money-bill-wave text-blue-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cash</div>
+      <div class="text-2xl font-bold text-blue-600">&#8358;{{ period_totals.cash|currency }}</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-purple-50">
+        <i class="fas fa-credit-card text-purple-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">POS / Card</div>
+      <div class="text-2xl font-bold text-purple-600">&#8358;{{ period_totals.pos|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">Card: &#8358;{{ period_totals.card|currency }}</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-amber-50">
+        <i class="fas fa-building-columns text-amber-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Transfer / Online</div>
+      <div class="text-2xl font-bold text-amber-600">&#8358;{{ period_totals.transfer|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">Online: &#8358;{{ period_totals.online|currency }}</div>
+    </div>
+  </div>
+
+  <!-- Expenses & Net -->
+  <div class="grid grid-cols-2 gap-4">
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-red-50">
+        <i class="fas fa-arrow-trend-down text-red-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Expenses</div>
+      <div class="text-2xl font-bold text-red-500">&#8358;{{ period_totals.expenses|currency }}</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 {% if period_totals.net >= 0 %}bg-primary-50{% else %}bg-red-50{% endif %}">
+        <i class="fas fa-scale-balanced {% if period_totals.net >= 0 %}text-primary-600{% else %}text-red-500{% endif %} text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Net (Revenue &minus; Expenses)</div>
+      <div class="text-2xl font-bold {% if period_totals.net >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">&#8358;{{ period_totals.net|currency }}</div>
+    </div>
+  </div>
+
+  <!-- Revenue Trend Chart -->
+  {% if daily_rows %}
+  <div class="bg-white rounded-2xl border border-sage-200 p-5">
+    <div class="flex items-center gap-2 mb-5">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Daily Revenue Trend</h3>
+    </div>
+    <canvas id="dailyChart" height="90"></canvas>
+  </div>
+  {% endif %}
+
+  <!-- Daily Breakdown Table -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Day-by-Day Breakdown</h3>
+      </div>
+      <span class="text-xs text-gray-400">{{ daily_rows|length }} active day{{ daily_rows|length|pluralize }}</span>
+    </div>
+
+    {% if daily_rows %}
+    <!-- Desktop -->
+    <div class="hidden lg:block overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Txns</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cash</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Card</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Transfer</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">POS</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Online</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Expenses</th>
+            <th class="text-right px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Net</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in daily_rows %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-4 py-3">
+              <div class="font-semibold text-gray-800">{{ row.date|date:"D, d M Y" }}</div>
+              {% if row.date == today %}<span class="text-xs text-primary-600 font-medium">Today</span>{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right font-bold text-gray-700">{{ row.transactions }}</td>
+            <td class="px-4 py-3 text-right font-bold text-gray-800">&#8358;{{ row.revenue|currency }}</td>
+            <td class="px-4 py-3 text-right text-blue-600 font-medium">
+              {% if row.breakdown.cash > 0 %}&#8358;{{ row.breakdown.cash|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-indigo-600 font-medium">
+              {% if row.breakdown.card > 0 %}&#8358;{{ row.breakdown.card|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-amber-600 font-medium">
+              {% if row.breakdown.transfer > 0 %}&#8358;{{ row.breakdown.transfer|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-purple-600 font-medium">
+              {% if row.breakdown.pos > 0 %}&#8358;{{ row.breakdown.pos|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-teal-600 font-medium">
+              {% if row.breakdown.online > 0 %}&#8358;{{ row.breakdown.online|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-red-500 font-medium">
+              {% if row.expenses > 0 %}&#8358;{{ row.expenses|currency }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right font-bold {% if row.net >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">
+              &#8358;{{ row.net|currency }}
+            </td>
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'daily_report_detail' row.date|date:'Y-m-d' %}"
+                 class="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-900 px-2.5 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">
+                View <i class="fas fa-arrow-right text-xs"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <!-- Totals row -->
+        <tfoot>
+          <tr class="bg-sage-100 border-t-2 border-sage-200">
+            <td class="px-4 py-3 font-bold text-gray-700 text-xs uppercase tracking-wider">Period Total</td>
+            <td class="px-4 py-3 text-right font-bold text-gray-800">{{ period_totals.transactions }}</td>
+            <td class="px-4 py-3 text-right font-bold text-gray-800">&#8358;{{ period_totals.revenue|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-blue-700">&#8358;{{ period_totals.cash|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-indigo-700">&#8358;{{ period_totals.card|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-amber-700">&#8358;{{ period_totals.transfer|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-purple-700">&#8358;{{ period_totals.pos|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-teal-700">&#8358;{{ period_totals.online|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold text-red-600">&#8358;{{ period_totals.expenses|currency }}</td>
+            <td class="px-4 py-3 text-right font-bold {% if period_totals.net >= 0 %}text-primary-800{% else %}text-red-700{% endif %}">&#8358;{{ period_totals.net|currency }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="lg:hidden divide-y divide-sage-100">
+      {% for row in daily_rows %}
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="font-semibold text-gray-800 text-sm">{{ row.date|date:"D, d M Y" }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">{{ row.transactions }} transaction{{ row.transactions|pluralize }}</div>
+          </div>
+          <a href="{% url 'daily_report_detail' row.date|date:'Y-m-d' %}"
+             class="text-xs font-semibold text-primary-700 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">
+            Details
+          </a>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-sage-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Total Sales</div>
+            <div class="font-bold text-gray-800">&#8358;{{ row.revenue|currency }}</div>
+          </div>
+          <div class="bg-blue-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Cash</div>
+            <div class="font-bold text-blue-700">&#8358;{{ row.breakdown.cash|currency }}</div>
+          </div>
+          <div class="bg-purple-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">POS</div>
+            <div class="font-bold text-purple-700">&#8358;{{ row.breakdown.pos|currency }}</div>
+          </div>
+          <div class="bg-amber-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Transfer</div>
+            <div class="font-bold text-amber-700">&#8358;{{ row.breakdown.transfer|currency }}</div>
+          </div>
+          {% if row.breakdown.card > 0 %}
+          <div class="bg-indigo-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Card</div>
+            <div class="font-bold text-indigo-700">&#8358;{{ row.breakdown.card|currency }}</div>
+          </div>
+          {% endif %}
+          {% if row.breakdown.online > 0 %}
+          <div class="bg-teal-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Online</div>
+            <div class="font-bold text-teal-700">&#8358;{{ row.breakdown.online|currency }}</div>
+          </div>
+          {% endif %}
+          <div class="bg-red-50 rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Expenses</div>
+            <div class="font-bold text-red-600">&#8358;{{ row.expenses|currency }}</div>
+          </div>
+          <div class="{% if row.net >= 0 %}bg-primary-50{% else %}bg-red-50{% endif %} rounded-xl p-2.5">
+            <div class="text-gray-400 font-medium mb-0.5">Net</div>
+            <div class="font-bold {% if row.net >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">&#8358;{{ row.net|currency }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="p-16 text-center text-gray-400">
+      <i class="fas fa-calendar-xmark text-4xl mb-3 block text-gray-200"></i>
+      <div class="font-medium">No sales data for {{ period_start|date:"F Y" }}</div>
+      <div class="text-sm mt-1">Try selecting a different month.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if daily_rows %}
+<script>
+const chartData = {{ chart_data }};
+new Chart(document.getElementById('dailyChart'), {
+  type: 'bar',
+  data: {
+    labels: chartData.map(d => d.date),
+    datasets: [{
+      label: 'Revenue',
+      data: chartData.map(d => d.revenue),
+      backgroundColor: function(ctx) {
+        const chart = ctx.chart;
+        const {ctx: c, chartArea} = chart;
+        if (!chartArea) return 'rgba(22,163,74,0.7)';
+        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, 'rgba(22,163,74,0.85)');
+        g.addColorStop(1, 'rgba(22,163,74,0.3)');
+        return g;
+      },
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#052e16',
+        padding: 12,
+        cornerRadius: 10,
+        callbacks: { label: v => ' ₦' + v.parsed.y.toLocaleString(undefined, {minimumFractionDigits:2}) }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#e2f0e2', drawBorder: false },
+        ticks: { callback: v => '₦' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v), font: { size: 10 }, color: '#9ca3af' },
+        border: { display: false }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10 }, color: '#9ca3af', maxRotation: 45, minRotation: 30 },
+        border: { display: false }
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

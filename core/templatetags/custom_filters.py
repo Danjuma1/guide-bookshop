@@ -15,8 +15,8 @@ def in_list(value, csv_string):
 
 @register.filter
 def currency(value):
-    """Format a number as currency with comma thousands separator, no decimals."""
+    """Format a number as currency with comma thousands separator and 2 decimal places."""
     try:
-        return intcomma(int(round(float(value))))
+        return f"{float(value):,.2f}"
     except (ValueError, TypeError):
         return value

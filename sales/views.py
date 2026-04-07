@@ -580,3 +580,165 @@ def import_customers(request):
 def sale_receipt(request, pk):
     sale = get_object_or_404(Sale, pk=pk)
     return render(request, 'sales/pos_receipt.html', {'sale': sale})
+
+
+@login_required
+@module_required('reports')
+def daily_report(request):
+    today = date.today()
+
+    # Default to current month
+    month = request.GET.get('month', today.strftime('%Y-%m'))
+    try:
+        year, m = map(int, month.split('-'))
+        period_start = date(year, m, 1)
+        if m == 12:
+            period_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            period_end = date(year, m + 1, 1) - timedelta(days=1)
+    except (ValueError, TypeError):
+        period_start = today.replace(day=1)
+        period_end = today
+        month = today.strftime('%Y-%m')
+
+    # Build one row per active day
+    days_range = (period_end - period_start).days + 1
+    all_days = [period_start + timedelta(days=i) for i in range(days_range)]
+
+    # Fetch all completed sales and expenses in one shot
+    sales_qs = Sale.objects.filter(
+        sale_date__date__gte=period_start,
+        sale_date__date__lte=period_end,
+        status='completed',
+    ).select_related()
+
+    expenses_qs = Expense.objects.filter(
+        expense_date__gte=period_start,
+        expense_date__lte=period_end,
+    )
+
+    # Index by date for fast lookup
+    sales_by_date = {}
+    for s in sales_qs:
+        d = s.sale_date.date()
+        sales_by_date.setdefault(d, []).append(s)
+
+    expenses_by_date = {}
+    for e in expenses_qs:
+        expenses_by_date.setdefault(e.expense_date, []).append(e)
+
+    payment_labels = {
+        'cash': 'Cash',
+        'card': 'Card',
+        'transfer': 'Transfer',
+        'pos': 'POS',
+        'online': 'Online',
+    }
+
+    daily_rows = []
+    period_totals = {k: 0 for k in ['transactions', 'revenue', 'cash', 'card', 'transfer', 'pos', 'online', 'expenses', 'net']}
+
+    for d in all_days:
+        day_sales = sales_by_date.get(d, [])
+        day_expenses = expenses_by_date.get(d, [])
+        if not day_sales and not day_expenses:
+            continue
+
+        breakdown = {k: 0 for k in payment_labels}
+        revenue = 0
+        for s in day_sales:
+            amt = float(s.total_amount)
+            revenue += amt
+            if s.payment_method in breakdown:
+                breakdown[s.payment_method] += amt
+
+        exp_total = sum(float(e.amount) for e in day_expenses)
+        net = revenue - exp_total
+
+        daily_rows.append({
+            'date': d,
+            'transactions': len(day_sales),
+            'revenue': revenue,
+            'breakdown': breakdown,
+            'expenses': exp_total,
+            'net': net,
+        })
+
+        period_totals['transactions'] += len(day_sales)
+        period_totals['revenue'] += revenue
+        for k in payment_labels:
+            period_totals[k] += breakdown[k]
+        period_totals['expenses'] += exp_total
+        period_totals['net'] += net
+
+    # Chart: daily revenue for the period (days with any data)
+    chart_data = [{'date': r['date'].strftime('%d %b'), 'revenue': r['revenue']} for r in daily_rows]
+
+    return render(request, 'sales/daily_report.html', {
+        'daily_rows': daily_rows,
+        'period_totals': period_totals,
+        'chart_data': json.dumps(chart_data),
+        'month': month,
+        'period_start': period_start,
+        'period_end': period_end,
+        'payment_labels': payment_labels,
+    })
+
+
+@login_required
+@module_required('reports')
+def daily_report_detail(request, report_date):
+    try:
+        from datetime import datetime
+        target = datetime.strptime(report_date, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, 'Invalid date format.')
+        return redirect('daily_report')
+
+    sales = Sale.objects.filter(
+        sale_date__date=target,
+        status='completed',
+    ).select_related('customer', 'served_by').prefetch_related('items__product').order_by('sale_date')
+
+    expenses = Expense.objects.filter(expense_date=target).order_by('created_at')
+
+    payment_labels = {
+        'cash': 'Cash',
+        'card': 'Card',
+        'transfer': 'Transfer',
+        'pos': 'POS',
+        'online': 'Online',
+    }
+
+    breakdown = {k: 0 for k in payment_labels}
+    revenue = 0
+    for s in sales:
+        amt = float(s.total_amount)
+        revenue += amt
+        if s.payment_method in breakdown:
+            breakdown[s.payment_method] += amt
+
+    exp_total = sum(float(e.amount) for e in expenses)
+    net = revenue - exp_total
+
+    summary = {
+        'revenue': revenue,
+        'transactions': sales.count(),
+        'breakdown': breakdown,
+        'expenses': exp_total,
+        'net': net,
+    }
+
+    prev_date = target - timedelta(days=1)
+    next_date = target + timedelta(days=1)
+    today = date.today()
+
+    return render(request, 'sales/daily_report_detail.html', {
+        'target': target,
+        'sales': sales,
+        'expenses': expenses,
+        'summary': summary,
+        'payment_labels': payment_labels,
+        'prev_date': prev_date,
+        'next_date': next_date if next_date <= today else None,
+    })

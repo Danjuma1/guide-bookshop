@@ -118,6 +118,8 @@ class DailySummary(models.Model):
     cash_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     card_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     transfer_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    pos_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    online_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     is_closed = models.BooleanField(default=False)
