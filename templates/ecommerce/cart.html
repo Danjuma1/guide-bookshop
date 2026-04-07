@@ -28,7 +28,7 @@
         <div class="flex gap-3 sm:gap-4 items-start">
           <a href="{% url 'shop_product_detail' item.product.slug %}" class="flex-shrink-0">
             {% if item.product.image %}
-            <img src="{{ item.product.image.url }}" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-xl">
+            <img src="{{ item.product.image.url }}" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-xl" loading="lazy">
             {% else %}
             <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
               <i class="fas fa-book text-primary-400 text-xl sm:text-2xl"></i>

@@ -79,7 +79,7 @@
             <td class="px-5 py-3.5">
               <div class="flex items-center gap-3">
                 {% if product.image %}
-                <img src="{{ product.image.url }}" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 shadow-sm">
+                <img src="{{ product.image.url }}" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 shadow-sm" loading="lazy">
                 {% else %}
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
                   <i class="fas fa-book text-primary-400 text-sm"></i>
@@ -180,7 +180,7 @@
       <div class="p-4 hover:bg-sage-50 transition-colors">
         <div class="flex items-start gap-3">
           {% if product.image %}
-          <img src="{{ product.image.url }}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+          <img src="{{ product.image.url }}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0" loading="lazy">
           {% else %}
           <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
             <i class="fas fa-book text-primary-400 text-sm"></i>

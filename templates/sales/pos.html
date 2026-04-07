@@ -101,7 +101,7 @@
              data-category="{{ product.category_id|default:'' }}"
              onclick="addToCart(this)">
           {% if product.image %}
-          <img src="{{ product.image.url }}" class="w-full h-24 object-cover rounded-xl mb-2.5">
+          <img src="{{ product.image.url }}" class="w-full h-24 object-cover rounded-xl mb-2.5" loading="lazy">
           {% else %}
           <div class="w-full h-24 rounded-xl mb-2.5 flex items-center justify-center" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
             <i class="fas fa-book text-primary-300 text-3xl"></i>

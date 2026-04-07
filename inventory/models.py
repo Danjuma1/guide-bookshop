@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import io
+import os
 
 
 class Category(models.Model):
@@ -75,6 +77,34 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        # Compress and resize new image uploads before writing to disk
+        if self.image:
+            try:
+                from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+                from django.core.files.base import ContentFile
+                from PIL import Image
+
+                if isinstance(self.image.file, (InMemoryUploadedFile, TemporaryUploadedFile)):
+                    img = Image.open(self.image)
+                    if img.mode in ('RGBA', 'P', 'LA'):
+                        img = img.convert('RGB')
+
+                    # Resize: never exceed 800px on either dimension
+                    if img.width > 800 or img.height > 800:
+                        img.thumbnail((800, 800), Image.LANCZOS)
+
+                    buf = io.BytesIO()
+                    img.save(buf, format='JPEG', quality=75, optimize=True)
+                    buf.seek(0)
+
+                    base_name = os.path.splitext(os.path.basename(self.image.name))[0]
+                    self.image = ContentFile(buf.read(), name=f"{base_name}.jpg")
+            except Exception:
+                pass  # Never break a save due to image processing
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
