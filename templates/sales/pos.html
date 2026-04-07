@@ -65,6 +65,9 @@
   </div>
 </div>
 
+<!-- ── Offline / Sync status bar ───────────────────────────────────────── -->
+<div id="status-bar" class="hidden mb-4 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-sm font-medium transition-all"></div>
+
 <div class="flex flex-col lg:flex-row gap-4" style="min-height:calc(100vh - 120px)">
 
   <!-- LEFT: Products Panel -->
@@ -133,6 +136,7 @@
               <i class="fas fa-receipt text-white text-xs"></i>
             </div>
             <h3 class="font-semibold text-gray-800">Current Sale</h3>
+            <span id="cart-pending-badge" class="hidden text-xs font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full"></span>
           </div>
           <button onclick="clearCart()" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Clear cart">
             <i class="fas fa-trash text-xs"></i>
@@ -214,18 +218,18 @@
 <!-- Receipt Modal -->
 <div id="receipt-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden">
-    <!-- Success header -->
-    <div class="p-8 text-center" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
-      <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+    <!-- Receipt header — swapped by JS for online vs offline -->
+    <div id="receipt-header" class="p-8 text-center" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+      <div id="receipt-icon" class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
            style="background:linear-gradient(135deg,#16a34a,#14532d)">
         <i class="fas fa-circle-check text-white text-2xl"></i>
       </div>
-      <h3 class="text-2xl font-bold text-gray-800 mb-1">Sale Complete!</h3>
+      <h3 id="receipt-title" class="text-2xl font-bold text-gray-800 mb-1">Sale Complete!</h3>
       <div id="receipt-invoice" class="text-primary-600 font-semibold text-sm mt-1"></div>
     </div>
     <div id="receipt-body" class="px-6 py-5 space-y-2 text-sm max-h-60 overflow-y-auto border-t border-sage-200"></div>
     <div class="px-6 pb-6 flex gap-3">
-      <button onclick="printReceipt()"
+      <button id="receipt-print-btn" onclick="printReceipt()"
               class="flex-1 border-2 border-primary-600 text-primary-700 py-3 rounded-2xl font-semibold text-sm hover:bg-primary-50 transition-colors flex items-center justify-center gap-2">
         <i class="fas fa-print"></i> Print
       </button>
@@ -241,6 +245,194 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+/* ═══════════════════════════════════════════════════════════════════════
+   SERVICE WORKER REGISTRATION
+═══════════════════════════════════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INDEXED DB  — pending offline sales
+═══════════════════════════════════════════════════════════════════════ */
+const IDB_NAME    = 'gb_pos_offline';
+const IDB_VERSION = 1;
+const IDB_STORE   = 'pending_sales';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'offline_id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbSave(sale) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(IDB_STORE, 'readwrite');
+    const req = tx.objectStore(IDB_STORE).add({ ...sale, saved_at: Date.now() });
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbDelete(offline_id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(IDB_STORE, 'readwrite');
+    const req = tx.objectStore(IDB_STORE).delete(offline_id);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbCount() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).count();
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════════════ */
+function getCsrfToken() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '{{ csrf_token }}';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════════════════════════════════════ */
+async function updateConnectionStatus() {
+  const bar   = document.getElementById('status-bar');
+  const count = await idbCount();
+
+  if (!navigator.onLine) {
+    bar.className = 'mb-4 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-sm font-medium';
+    bar.style.cssText = 'background:#fef3c7;border:1px solid #fcd34d;color:#92400e';
+    bar.innerHTML = `
+      <i class="fas fa-wifi" style="text-decoration:line-through;opacity:.6"></i>
+      <span class="flex-1">You're <strong>offline</strong>. Sales are saved locally and will sync automatically.</span>
+      ${count > 0 ? `<span class="bg-amber-500 text-white text-xs rounded-full px-2.5 py-0.5 font-bold">${count} pending</span>` : ''}`;
+  } else if (count > 0) {
+    bar.className = 'mb-4 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-sm font-medium';
+    bar.style.cssText = 'background:#fffbeb;border:1px solid #fcd34d;color:#92400e';
+    bar.innerHTML = `
+      <i class="fas fa-rotate text-amber-500"></i>
+      <span class="flex-1"><strong>${count}</strong> offline sale${count > 1 ? 's' : ''} waiting to sync.</span>
+      <button onclick="syncPendingSales()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white" style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        <i class="fas fa-rotate"></i> Sync Now
+      </button>`;
+  } else {
+    bar.className = 'hidden';
+    bar.style.cssText = '';
+    bar.innerHTML = '';
+  }
+
+  updatePendingBadge(count);
+}
+
+function updatePendingBadge(count) {
+  const badge = document.getElementById('cart-pending-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = `${count} pending`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function showStatusMessage(msg, isError = false) {
+  const bar = document.getElementById('status-bar');
+  bar.className = 'mb-4 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-sm font-medium';
+  bar.style.cssText = isError
+    ? 'background:#fef2f2;border:1px solid #fca5a5;color:#991b1b'
+    : 'background:#f0fdf4;border:1px solid #86efac;color:#166534';
+  bar.innerHTML = `<i class="fas ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i><span>${msg}</span>`;
+  setTimeout(updateConnectionStatus, 4000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SYNC PENDING SALES
+═══════════════════════════════════════════════════════════════════════ */
+async function syncPendingSales() {
+  if (!navigator.onLine) return;
+  const pending = await idbGetAll();
+  if (pending.length === 0) { updateConnectionStatus(); return; }
+
+  const bar = document.getElementById('status-bar');
+  bar.className = 'mb-4 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-sm font-medium';
+  bar.style.cssText = 'background:#eff6ff;border:1px solid #93c5fd;color:#1e40af';
+  bar.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Syncing ${pending.length} sale${pending.length > 1 ? 's' : ''}…</span>`;
+
+  let synced = 0, failed = 0, errors = [];
+
+  for (const sale of pending) {
+    try {
+      const resp = await fetch('{% url "process_sale_api" %}', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body:    JSON.stringify({
+          items:          sale.items,
+          discount:       sale.discount,
+          payment_method: sale.payment_method,
+          customer_name:  sale.customer_name || '',
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        await idbDelete(sale.offline_id);
+        synced++;
+      } else {
+        failed++;
+        errors.push(data.error || 'Unknown error');
+      }
+    } catch {
+      failed++;
+      errors.push('Network error');
+    }
+  }
+
+  if (failed === 0) {
+    showStatusMessage(`${synced} sale${synced > 1 ? 's' : ''} synced successfully!`);
+  } else if (synced > 0) {
+    showStatusMessage(`${synced} synced, ${failed} failed: ${errors[0]}`, true);
+  } else {
+    showStatusMessage(`Sync failed: ${errors[0]}. Will retry when online.`, true);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ONLINE / OFFLINE EVENTS
+═══════════════════════════════════════════════════════════════════════ */
+window.addEventListener('online',  () => { updateConnectionStatus(); syncPendingSales(); });
+window.addEventListener('offline', () => updateConnectionStatus());
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CART STATE
+═══════════════════════════════════════════════════════════════════════ */
 let cart = {};
 let currentSaleId = null;
 
@@ -364,55 +556,89 @@ document.getElementById('payment-method').addEventListener('change', function() 
   document.getElementById('cash-section').style.display = this.value === 'cash' ? 'block' : 'none';
 });
 
-/* ── Process sale via API ── */
+/* ═══════════════════════════════════════════════════════════════════════
+   PROCESS SALE  — online or offline
+═══════════════════════════════════════════════════════════════════════ */
 async function processSale() {
   if (Object.keys(cart).length === 0) return;
   const btn = document.getElementById('checkout-btn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing…';
 
-  const items = Object.entries(cart).map(([id, item]) => ({
-    id: id,
-    quantity: item.qty,
-    price: item.price
-  }));
-  const discount = parseFloat(document.getElementById('discount').value) || 0;
+  const payload = {
+    items:          Object.entries(cart).map(([id, item]) => ({ id, quantity: item.qty, price: item.price })),
+    discount:       parseFloat(document.getElementById('discount').value) || 0,
+    payment_method: document.getElementById('payment-method').value,
+    customer_name:  document.getElementById('customer-name').value.trim(),
+  };
 
+  // ── Offline path ──────────────────────────────────────────────────────
+  if (!navigator.onLine) {
+    await idbSave(payload);
+    showReceipt(null, payload);            // offline receipt
+    updateConnectionStatus();
+    return;
+  }
+
+  // ── Online path ───────────────────────────────────────────────────────
   try {
     const resp = await fetch('{% url "process_sale_api" %}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({
-        items,
-        discount,
-        payment_method: document.getElementById('payment-method').value,
-        customer_name: document.getElementById('customer-name').value,
-      })
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body:    JSON.stringify(payload),
     });
     const data = await resp.json();
     if (data.success) {
       currentSaleId = data.sale_id;
-      showReceipt(data);
+      showReceipt(data, payload);          // online receipt
     } else {
       alert('Error: ' + (data.error || 'Unknown error'));
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Complete Sale';
     }
-  } catch(e) {
-    alert('Network error. Please try again.');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Complete Sale';
+  } catch {
+    // Lost connection mid-request — save offline
+    await idbSave(payload);
+    showReceipt(null, payload);
+    updateConnectionStatus();
   }
 }
 
-/* ── Receipt modal ── */
-function showReceipt(data) {
-  document.getElementById('receipt-invoice').textContent = 'Invoice: ' + data.invoice_number;
-  const items = Object.values(cart);
-  let html = items.map(i =>
+/* ═══════════════════════════════════════════════════════════════════════
+   RECEIPT MODAL
+   data  = server response (online) or null (offline)
+   payload = sale payload (always)
+═══════════════════════════════════════════════════════════════════════ */
+function showReceipt(data, payload) {
+  const isOffline = !data;
+  const total     = payload.items.reduce((s, i) => s + i.price * i.quantity, 0) - payload.discount;
+
+  // Header
+  const icon    = document.getElementById('receipt-icon');
+  const title   = document.getElementById('receipt-title');
+  const invoice = document.getElementById('receipt-invoice');
+  const hdr     = document.getElementById('receipt-header');
+  const printBtn = document.getElementById('receipt-print-btn');
+
+  if (isOffline) {
+    hdr.style.background = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
+    icon.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+    icon.innerHTML = '<i class="fas fa-clock text-white text-2xl"></i>';
+    title.textContent = 'Saved Offline!';
+    invoice.innerHTML = '<span class="inline-flex items-center gap-1 text-amber-700 font-medium"><i class="fas fa-rotate text-xs"></i> Will sync automatically when you reconnect</span>';
+    printBtn.classList.add('hidden');
+  } else {
+    hdr.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+    icon.style.background = 'linear-gradient(135deg,#16a34a,#14532d)';
+    icon.innerHTML = '<i class="fas fa-circle-check text-white text-2xl"></i>';
+    title.textContent = 'Sale Complete!';
+    invoice.textContent = 'Invoice: ' + data.invoice_number;
+    printBtn.classList.remove('hidden');
+  }
+
+  // Items
+  const cartItems = Object.values(cart);
+  let html = cartItems.map(i =>
     `<div class="flex justify-between py-1.5 border-b border-sage-100 last:border-0">
        <span class="text-gray-600 truncate mr-3">${i.name} <span class="text-gray-400">×${i.qty}</span></span>
        <span class="font-semibold text-gray-800 whitespace-nowrap">₦${(i.price * i.qty).toLocaleString()}</span>
@@ -420,8 +646,9 @@ function showReceipt(data) {
   ).join('');
   html += `<div class="flex justify-between font-bold text-base mt-3 pt-2 border-t-2 border-primary-200">
     <span class="text-gray-700">Total</span>
-    <span class="text-primary-700">₦${data.total.toLocaleString()}</span>
+    <span class="text-primary-700">₦${total.toLocaleString()}</span>
   </div>`;
+
   document.getElementById('receipt-body').innerHTML = html;
   document.getElementById('receipt-modal').classList.remove('hidden');
   document.getElementById('receipt-modal').classList.add('flex');
@@ -505,5 +732,8 @@ function filterProducts() {
     card.style.display = (matchQ && matchCat) ? '' : 'none';
   });
 }
+
+/* ── Init ── */
+updateConnectionStatus();   // show status bar and pending count on load
 </script>
 {% endblock %}

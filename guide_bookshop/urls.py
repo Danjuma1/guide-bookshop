@@ -12,8 +12,11 @@ sitemaps = {
     'categories': CategorySitemap,
 }
 
+from core.views import service_worker
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('sw.js', service_worker, name='sw_js'),
     path('', include('core.urls')),
     path('accounts/', include('accounts.urls')),
     path('inventory/', include('inventory.urls')),

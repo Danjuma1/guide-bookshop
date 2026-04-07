@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
@@ -8,6 +10,15 @@ from sales.models import Sale, SaleItem
 from ecommerce.models import OnlineOrder
 from .models import Banner
 from accounts.decorators import admin_required
+
+
+def service_worker(request):
+    """Serve the service worker JS at /sw.js with correct headers."""
+    content = render_to_string('sw.js', {}, request)
+    response = HttpResponse(content, content_type='application/javascript; charset=utf-8')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
 def landing_page(request):
