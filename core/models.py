@@ -17,6 +17,11 @@ class SiteSettings(models.Model):
     currency = models.CharField(max_length=5, default='₦')
     vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=7.5)
 
+    # Bank transfer payment details
+    bank_name = models.CharField(max_length=100, blank=True)
+    account_number = models.CharField(max_length=20, blank=True)
+    account_name = models.CharField(max_length=200, blank=True)
+
     class Meta:
         verbose_name_plural = "Site Settings"
 

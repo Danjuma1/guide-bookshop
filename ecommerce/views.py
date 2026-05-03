@@ -1,11 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
+from django.template.loader import render_to_string
 from inventory.models import Product, Category
+from core.models import SiteSettings
 from .models import Cart, CartItem, OnlineOrder, OnlineOrderItem
 from accounts.decorators import module_required
 
@@ -40,8 +45,10 @@ def shop_home(request):
     else:
         products = products.order_by('name')
 
+    paginator = Paginator(products, 24)
+    page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'ecommerce/shop.html', {
-        'products': products, 'categories': categories,
+        'products': page_obj, 'page_obj': page_obj, 'categories': categories,
         'q': q, 'selected_category': category_slug,
         'selected_type': product_type, 'sort': sort,
     })
@@ -132,6 +139,7 @@ def checkout(request):
         return redirect('cart')
 
     total = sum(item.subtotal for item in items)
+    site_settings = SiteSettings.objects.first()
 
     if request.method == 'POST':
         customer_name = request.POST.get('customer_name', '').strip()
@@ -189,10 +197,52 @@ def checkout(request):
         placed = request.session.get('placed_orders', [])
         placed.append(order.order_number)
         request.session['placed_orders'] = placed[-10:]  # keep last 10 max
+
+        # Notify admin by email
+        _send_order_notification(order, site_settings)
+
         messages.success(request, f'Order {order.order_number} placed successfully! We will contact you shortly.')
         return redirect('order_detail', order_number=order.order_number)
 
-    return render(request, 'ecommerce/checkout.html', {'cart': cart, 'items': items, 'total': total})
+    return render(request, 'ecommerce/checkout.html', {
+        'cart': cart, 'items': items, 'total': total, 'site_settings': site_settings,
+    })
+
+
+def _send_order_notification(order, site_settings):
+    admin_email = getattr(django_settings, 'ADMIN_EMAIL', '')
+    if site_settings and site_settings.email:
+        admin_email = admin_email or site_settings.email
+    if not admin_email:
+        return
+    try:
+        item_lines = '\n'.join(
+            f"  - {item.product.name} x{item.quantity} @ ₦{item.unit_price} = ₦{item.subtotal}"
+            for item in order.items.select_related('product')
+        )
+        body = (
+            f"New online order received!\n\n"
+            f"Order Number : {order.order_number}\n"
+            f"Date         : {order.order_date.strftime('%d %b %Y, %H:%M')}\n\n"
+            f"--- Customer ---\n"
+            f"Name    : {order.customer_name}\n"
+            f"Email   : {order.customer_email}\n"
+            f"Phone   : {order.customer_phone}\n"
+            f"Address : {order.shipping_address}\n\n"
+            f"--- Items ---\n{item_lines}\n\n"
+            f"Payment Method : {order.get_payment_method_display()}\n"
+            f"Order Total    : ₦{order.total_amount}\n"
+            f"\nLog in to the admin panel to manage this order."
+        )
+        send_mail(
+            subject=f"New Order {order.order_number} – {order.customer_name}",
+            message=body,
+            from_email=django_settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[admin_email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
 
 def order_detail(request, order_number):
@@ -210,7 +260,8 @@ def order_detail(request, order_number):
         if order_number not in allowed:
             messages.error(request, 'Order not found or access denied.')
             return redirect('shop_home')
-    return render(request, 'ecommerce/order_detail.html', {'order': order})
+    site_settings = SiteSettings.objects.first()
+    return render(request, 'ecommerce/order_detail.html', {'order': order, 'site_settings': site_settings})
 
 
 def order_list(request):
@@ -233,10 +284,22 @@ def manage_orders(request):
 
 @login_required
 @module_required('online_orders')
+def admin_order_detail(request, pk):
+    order = get_object_or_404(OnlineOrder, pk=pk)
+    return render(request, 'ecommerce/admin_order_detail.html', {'order': order})
+
+
+@login_required
+@module_required('online_orders')
 def update_order_status(request, pk):
     order = get_object_or_404(OnlineOrder, pk=pk)
     if request.method == 'POST':
-        order.status = request.POST.get('status')
-        order.save()
+        new_status = request.POST.get('status')
+        if new_status in dict(OnlineOrder.STATUS):
+            order.status = new_status
+            order.save()
         messages.success(request, f'Order {order.order_number} status updated.')
+    next_url = request.POST.get('next', '')
+    if next_url == 'detail':
+        return redirect('admin_order_detail', pk=pk)
     return redirect('manage_orders')

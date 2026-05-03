@@ -7,7 +7,7 @@
   <meta name="description" content="{% block meta_description %}Guide Bookshop & Stationeries — Nigeria's trusted source for books, stationery, art supplies, and educational materials. Shop online with fast delivery.{% endblock %}">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://guidebookshop.com.ng{{ request.path }}">
-  <link rel="icon" type="image/png" href="{% if site_settings and site_settings.logo %}{{ site_settings.logo.url }}{% else %}https://guidebookshop.com.ng/static/img/favicon.png{% endif %}">
+  {% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
   <!-- Open Graph -->
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
   <meta property="og:title" content="{% block og_title %}Guide Bookshop & Stationeries{% endblock %}">

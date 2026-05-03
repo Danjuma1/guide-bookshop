@@ -14,6 +14,68 @@
     outline: none;
     background: white;
   }
+  /* Searchable dropdown */
+  .product-picker { position: relative; }
+  .product-picker .picker-display {
+    width: 100%;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: #374151;
+    font-weight: 500;
+    user-select: none;
+  }
+  .product-picker .picker-display:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+  .product-picker .picker-dropdown {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: white;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    overflow: hidden;
+    display: none;
+  }
+  .product-picker .picker-dropdown.open { display: block; }
+  .product-picker .picker-search {
+    padding: 0.5rem;
+    border-bottom: 1px solid #f0f9f0;
+  }
+  .product-picker .picker-search input {
+    width: 100%;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem 0.375rem 2rem;
+    font-size: 0.8125rem;
+    background: #f8fdf8;
+    outline: none;
+  }
+  .product-picker .picker-search input:focus { border-color: #16a34a; background: white; }
+  .product-picker .picker-search .search-icon { position: absolute; left: 1.375rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.7rem; pointer-events: none; }
+  .product-picker .picker-list { max-height: 220px; overflow-y: auto; }
+  .product-picker .picker-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .product-picker .picker-item:hover { background: #f0fdf4; color: #15803d; }
+  .product-picker .picker-item.selected { background: #dcfce7; color: #14532d; font-weight: 600; }
+  .product-picker .picker-item .item-stock { font-size: 0.7rem; color: #9ca3af; flex-shrink: 0; }
+  .product-picker .picker-empty { padding: 1rem 0.75rem; text-align: center; color: #9ca3af; font-size: 0.8125rem; }
 </style>
 {% endblock %}
 {% block content %}
@@ -50,8 +112,8 @@
     </div>
 
     <!-- Sale Items -->
-    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden mb-5">
-      <div class="px-6 py-4 border-b border-sage-200 flex items-center justify-between">
+    <div class="bg-white rounded-2xl border border-sage-200 mb-5">
+      <div class="px-6 py-4 border-b border-sage-200 flex items-center justify-between rounded-t-2xl">
         <div class="flex items-center gap-2">
           <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
           <h3 class="font-semibold text-gray-800">Sale Items</h3>
@@ -68,7 +130,7 @@
           <div class="col-span-3">Unit Price</div>
           <div class="col-span-1"></div>
         </div>
-        <div id="items-container" class="space-y-3"></div>
+        <div id="items-container" class="space-y-3 overflow-visible"></div>
       </div>
     </div>
 
@@ -120,17 +182,91 @@
 <script>
 const products = [{% for p in products %}{ id:{{ p.id }}, name:'{{ p.name|escapejs }}', price:{{ p.effective_price }}, stock:{{ p.quantity_in_stock }} },{% endfor %}];
 
+// ── Searchable product picker ──────────────────────────────────────────────
+function createPicker(row) {
+  const wrapper = row.querySelector('.product-picker');
+  const hiddenInput = wrapper.querySelector('input[name=product_id]');
+  const display = wrapper.querySelector('.picker-display');
+  const dropdown = wrapper.querySelector('.picker-dropdown');
+  const searchInput = wrapper.querySelector('.picker-search input');
+  const list = wrapper.querySelector('.picker-list');
+  let selectedId = null;
+
+  function renderList(filter) {
+    const term = (filter || '').toLowerCase();
+    const filtered = term ? products.filter(p => p.name.toLowerCase().includes(term)) : products;
+    if (!filtered.length) {
+      list.innerHTML = '<div class="picker-empty">No products found</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(p =>
+      `<div class="picker-item${selectedId == p.id ? ' selected' : ''}" data-id="${p.id}" data-price="${p.price}" data-name="${p.name.replace(/"/g,'&quot;')}">
+        <span>${p.name}</span>
+        <span class="item-stock">${p.stock} in stock</span>
+      </div>`
+    ).join('');
+    list.querySelectorAll('.picker-item').forEach(item => {
+      item.addEventListener('click', () => selectItem(item));
+    });
+  }
+
+  function selectItem(item) {
+    selectedId = item.dataset.id;
+    hiddenInput.value = selectedId;
+    display.querySelector('.picker-label').textContent = item.dataset.name;
+    // auto-fill price
+    const priceInput = row.querySelector('[name=unit_price]');
+    if (item.dataset.price) priceInput.value = item.dataset.price;
+    closeDropdown();
+    updateTotal();
+  }
+
+  function openDropdown() {
+    dropdown.classList.add('open');
+    searchInput.value = '';
+    renderList('');
+    searchInput.focus();
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    renderList(searchInput.value);
+  }
+
+  display.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.contains('open') ? closeDropdown() : openDropdown();
+  });
+  display.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDropdown(); } });
+
+  searchInput.addEventListener('input', () => renderList(searchInput.value));
+  searchInput.addEventListener('click', e => e.stopPropagation());
+
+  document.addEventListener('click', () => { if (dropdown.classList.contains('open')) closeDropdown(); });
+  renderList('');
+}
+
 function addItem() {
   const container = document.getElementById('items-container');
   const div = document.createElement('div');
-  div.className = 'grid grid-cols-12 gap-2 items-center bg-sage-50 rounded-xl p-3 border border-sage-200';
-  const opts = products.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('');
+  div.className = 'grid grid-cols-12 gap-2 items-center bg-sage-50 rounded-xl p-3 border border-sage-200 overflow-visible';
   div.innerHTML = `
     <div class="col-span-12 sm:col-span-5">
       <label class="block text-xs text-gray-400 font-medium mb-1 sm:hidden">Product</label>
-      <select name="product_id" onchange="updatePrice(this)" class="w-full border border-sage-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none font-medium text-gray-700">
-        <option value="">Select product</option>${opts}
-      </select>
+      <div class="product-picker relative">
+        <input type="hidden" name="product_id">
+        <div class="picker-display" tabindex="0">
+          <span class="picker-label text-gray-400">Search &amp; select product…</span>
+          <i class="fas fa-chevron-down text-gray-400 text-xs flex-shrink-0"></i>
+        </div>
+        <div class="picker-dropdown">
+          <div class="picker-search relative">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" placeholder="Type to search…" autocomplete="off">
+          </div>
+          <div class="picker-list"></div>
+        </div>
+      </div>
     </div>
     <div class="col-span-5 sm:col-span-3">
       <label class="block text-xs text-gray-400 font-medium mb-1 sm:hidden">Quantity</label>
@@ -150,20 +286,14 @@ function addItem() {
     </div>
   `;
   container.appendChild(div);
-}
-
-function updatePrice(sel) {
-  const opt = sel.selectedOptions[0];
-  const row = sel.closest('.grid');
-  if (opt.dataset.price) row.querySelector('[name=unit_price]').value = opt.dataset.price;
-  updateTotal();
+  createPicker(div);
 }
 
 function updateTotal() {
   let subtotal = 0;
-  document.querySelectorAll('[name=product_id]').forEach((sel, i) => {
-    const qty = parseFloat(document.querySelectorAll('[name=quantity]')[i]?.value || 0);
-    const price = parseFloat(document.querySelectorAll('[name=unit_price]')[i]?.value || 0);
+  document.querySelectorAll('#items-container .grid').forEach(row => {
+    const qty = parseFloat(row.querySelector('[name=quantity]')?.value || 0);
+    const price = parseFloat(row.querySelector('[name=unit_price]')?.value || 0);
     subtotal += qty * price;
   });
   const discount = parseFloat(document.querySelector('[name=discount_amount]').value) || 0;

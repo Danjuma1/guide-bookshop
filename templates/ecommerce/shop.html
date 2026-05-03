@@ -84,7 +84,7 @@
       </div>
 
       <div class="text-sm text-gray-500 mb-4">
-        {{ products|length }} product{{ products|length|pluralize }} found
+        {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} found
         {% if q %} for "<strong class="text-gray-700">{{ q }}</strong>"{% endif %}
       </div>
 
@@ -138,6 +138,37 @@
         <a href="{% url 'shop_home' %}" class="bg-primary-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-700 transition-colors">Browse All Products</a>
       </div>
       {% endif %}
+
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="flex items-center justify-between mt-8 bg-white rounded-2xl shadow-sm px-5 py-3.5">
+        <p class="text-sm text-gray-500">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </p>
+        <div class="flex items-center gap-1.5">
+          {% if page_obj.has_previous %}
+          <a href="?q={{ q }}&type={{ selected_type }}&category={{ selected_category }}&sort={{ sort }}&page={{ page_obj.previous_page_number }}"
+             class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-all text-sm">
+            <i class="fas fa-chevron-left text-xs"></i>
+          </a>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+            <span class="w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold text-white bg-primary-600">{{ num }}</span>
+            {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+            <a href="?q={{ q }}&type={{ selected_type }}&category={{ selected_category }}&sort={{ sort }}&page={{ num }}"
+               class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-primary-400 hover:text-primary-600 transition-all">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+          <a href="?q={{ q }}&type={{ selected_type }}&category={{ selected_category }}&sort={{ sort }}&page={{ page_obj.next_page_number }}"
+             class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-all text-sm">
+            <i class="fas fa-chevron-right text-xs"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 </div>

@@ -1,0 +1,240 @@
+{% extends 'base_admin.html' %}
+{% block title %}Order {{ order.order_number }}{% endblock %}
+{% block page_title %}Order Detail{% endblock %}
+{% block content %}
+<div class="space-y-5 max-w-4xl">
+
+  <!-- Back + Actions bar -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <a href="{% url 'manage_orders' %}"
+       class="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Orders
+    </a>
+    <!-- Status update form -->
+    <form method="post" action="{% url 'update_order_status' order.pk %}" class="flex items-center gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="detail">
+      <select name="status"
+              class="border border-sage-200 rounded-xl px-3 py-2 text-sm bg-sage-50 focus:outline-none font-medium text-gray-600">
+        {% for value, label in order.STATUS %}
+        <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit"
+              class="text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
+              style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        Update Status
+      </button>
+    </form>
+  </div>
+
+  <!-- Header card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-6 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Order Number</div>
+        <div class="font-mono font-bold text-gray-800 text-xl">{{ order.order_number }}</div>
+        <div class="text-sm text-gray-400 mt-1">
+          <i class="fas fa-clock mr-1"></i>Placed on {{ order.order_date|date:"d M Y, H:i" }}
+        </div>
+        {% if order.updated_at != order.order_date %}
+        <div class="text-xs text-gray-400 mt-0.5">
+          <i class="fas fa-pen mr-1"></i>Updated {{ order.updated_at|date:"d M Y, H:i" }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex flex-col items-end gap-2">
+        <span class="px-3 py-1.5 rounded-full text-xs font-bold border
+          {% if order.status == 'delivered' %}bg-primary-50 text-primary-700 border-primary-100
+          {% elif order.status == 'cancelled' %}bg-red-50 text-red-700 border-red-100
+          {% elif order.status == 'pending' %}bg-yellow-50 text-yellow-700 border-yellow-100
+          {% elif order.status == 'shipped' %}bg-blue-50 text-blue-700 border-blue-100
+          {% else %}bg-purple-50 text-purple-700 border-purple-100{% endif %}">
+          <i class="fas fa-circle text-xs mr-1"></i>{{ order.get_status_display }}
+        </span>
+        <span class="px-3 py-1.5 rounded-full text-xs font-semibold
+          {% if order.payment_status %}bg-green-50 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+          <i class="fas fa-{% if order.payment_status %}check{% else %}clock{% endif %} mr-1"></i>
+          Payment {% if order.payment_status %}Confirmed{% else %}Pending{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-5">
+
+    <!-- Customer Info -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-user text-primary-600 text-xs"></i>
+        </div>
+        <h3 class="font-semibold text-gray-700 text-sm">Customer Information</h3>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-user text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Full Name</div>
+            <div class="font-semibold text-gray-800">{{ order.customer_name }}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-envelope text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Email Address</div>
+            <a href="mailto:{{ order.customer_email }}" class="font-semibold text-primary-600 hover:underline">
+              {{ order.customer_email }}
+            </a>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-phone text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Phone Number</div>
+            <a href="tel:{{ order.customer_phone }}" class="font-semibold text-gray-800 hover:text-primary-600">
+              {{ order.customer_phone }}
+            </a>
+          </div>
+        </div>
+        {% if order.user %}
+        <div class="flex items-start gap-3">
+          <i class="fas fa-id-badge text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Registered Account</div>
+            <div class="font-semibold text-gray-800">{{ order.user.get_full_name|default:order.user.username }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+          <i class="fas fa-user-slash mr-1"></i>Guest checkout (no account)
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Delivery & Payment -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+          <i class="fas fa-truck text-primary-600 text-xs"></i>
+        </div>
+        <h3 class="font-semibold text-gray-700 text-sm">Delivery & Payment</h3>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-map-marker-alt text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Delivery Address</div>
+            <div class="font-semibold text-gray-800">{{ order.shipping_address }}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-credit-card text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Payment Method</div>
+            <div class="font-semibold text-gray-800">{{ order.get_payment_method_display }}</div>
+          </div>
+        </div>
+        {% if order.notes %}
+        <div class="flex items-start gap-3">
+          <i class="fas fa-sticky-note text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Customer Notes</div>
+            <div class="text-gray-700 bg-sage-50 rounded-lg p-2 text-xs leading-relaxed">{{ order.notes }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if order.shipping_fee > 0 %}
+        <div class="flex items-start gap-3">
+          <i class="fas fa-truck text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Shipping Fee</div>
+            <div class="font-semibold text-gray-800">&#8358;{{ order.shipping_fee|currency }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if order.discount_amount > 0 %}
+        <div class="flex items-start gap-3">
+          <i class="fas fa-tag text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Discount</div>
+            <div class="font-semibold text-green-600">-&#8358;{{ order.discount_amount|currency }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Ordered Items -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <i class="fas fa-shopping-bag text-primary-600 text-xs"></i>
+      </div>
+      <h3 class="font-semibold text-gray-700 text-sm">Items Ordered</h3>
+      <span class="ml-auto text-xs font-semibold bg-sage-100 text-gray-600 px-2 py-1 rounded-lg">
+        {{ order.items.count }} item{{ order.items.count|pluralize }}
+      </span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-sage-100 bg-sage-50">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Product</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">SKU</th>
+            <th class="text-center px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Qty</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Unit Price</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-50">
+          {% for item in order.items.select_related %}
+          <tr class="hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-3">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-sage-100">
+                  <i class="fas fa-book text-primary-400 text-xs"></i>
+                </div>
+                {% endif %}
+                <div>
+                  <div class="font-semibold text-gray-800">{{ item.product.name }}</div>
+                  {% if item.product.author %}
+                  <div class="text-xs text-gray-400 mt-0.5">by {{ item.product.author }}</div>
+                  {% endif %}
+                  {% if item.product.isbn %}
+                  <div class="text-xs text-gray-400 font-mono">ISBN: {{ item.product.isbn }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-4 hidden sm:table-cell">
+              <span class="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">{{ item.product.sku }}</span>
+            </td>
+            <td class="px-4 py-4 text-center">
+              <span class="bg-sage-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-bold">{{ item.quantity }}</span>
+            </td>
+            <td class="px-5 py-4 text-right text-gray-600">&#8358;{{ item.unit_price|currency }}</td>
+            <td class="px-5 py-4 text-right font-bold text-gray-800">&#8358;{{ item.subtotal|currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-sage-200" style="background:linear-gradient(135deg,#f0fdf4,#f8fdf8)">
+            <td colspan="4" class="px-5 py-4 text-right font-bold text-gray-700">Order Total</td>
+            <td class="px-5 py-4 text-right">
+              <span class="text-lg font-bold" style="color:#16a34a">&#8358;{{ order.total_amount|currency }}</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

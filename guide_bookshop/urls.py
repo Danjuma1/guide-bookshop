@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from core.sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap
 
 sitemaps = {
@@ -15,6 +15,7 @@ sitemaps = {
 from core.views import service_worker
 
 urlpatterns = [
+    path('favicon.ico', RedirectView.as_view(url='/static/img/favicon.svg', permanent=True)),
     path('admin/', admin.site.urls),
     path('sw.js', service_worker, name='sw_js'),
     path('', include('core.urls')),

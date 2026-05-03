@@ -12,6 +12,7 @@ urlpatterns = [
     path('checkout/', views.checkout, name='checkout'),
     path('orders/', views.order_list, name='order_list'),
     path('orders/manage/', views.manage_orders, name='manage_orders'),  # MUST be before <str:order_number>
+    path('orders/<int:pk>/detail/', views.admin_order_detail, name='admin_order_detail'),
     path('orders/<int:pk>/update-status/', views.update_order_status, name='update_order_status'),
     path('orders/<str:order_number>/', views.order_detail, name='order_detail'),
 ]

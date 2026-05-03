@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q, F
 from django.utils.text import slugify
 from django.http import HttpResponse
@@ -27,8 +28,11 @@ def product_list(request):
         products = products.filter(product_type=product_type)
 
     categories = Category.objects.all()
+    paginator = Paginator(products, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'inventory/product_list.html', {
-        'products': products,
+        'products': page_obj,
+        'page_obj': page_obj,
         'categories': categories,
         'q': q,
         'selected_category': category_id,
@@ -359,10 +363,46 @@ def po_detail(request, pk):
 @login_required
 @module_required('inventory')
 def low_stock_report(request):
+    from .models import Supplier
     low_stock = Product.objects.filter(
         quantity_in_stock__lte=F('reorder_level'), is_active=True
-    ).order_by('quantity_in_stock')
-    return render(request, 'inventory/low_stock.html', {'products': low_stock})
+    ).select_related('supplier', 'category')
+
+    q = request.GET.get('q', '').strip()
+    supplier_id = request.GET.get('supplier', '')
+    category_id = request.GET.get('category', '')
+    product_type = request.GET.get('type', '')
+    stock_filter = request.GET.get('stock', '')
+
+    if q:
+        low_stock = low_stock.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+    if supplier_id:
+        low_stock = low_stock.filter(supplier_id=supplier_id)
+    if category_id:
+        low_stock = low_stock.filter(category_id=category_id)
+    if product_type:
+        low_stock = low_stock.filter(product_type=product_type)
+    if stock_filter == 'out':
+        low_stock = low_stock.filter(quantity_in_stock=0)
+    elif stock_filter == 'low':
+        low_stock = low_stock.filter(quantity_in_stock__gt=0)
+
+    low_stock = low_stock.order_by('quantity_in_stock')
+    suppliers = Supplier.objects.filter(is_active=True).order_by('name')
+    categories = Category.objects.all().order_by('name')
+    product_type_choices = Product.PRODUCT_TYPE
+
+    return render(request, 'inventory/low_stock.html', {
+        'products': low_stock,
+        'suppliers': suppliers,
+        'categories': categories,
+        'product_type_choices': product_type_choices,
+        'q': q,
+        'selected_supplier': supplier_id,
+        'selected_category': category_id,
+        'selected_type': product_type,
+        'stock_filter': stock_filter,
+    })
 
 
 def _parse_upload(file):
