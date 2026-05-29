@@ -54,8 +54,8 @@
 <div id="mobile-cart-overlay" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="closeMobileCart()"></div>
 
 <!-- Mobile Cart Drawer -->
-<div id="mobile-cart-drawer" class="lg:hidden fixed bottom-0 left-0 right-0 z-50 hidden flex-col rounded-t-3xl overflow-hidden shadow-2xl" style="max-height:85vh;background:white">
-  <div class="bg-white rounded-t-3xl flex flex-col" style="max-height:85vh">
+<div id="mobile-cart-drawer" class="lg:hidden fixed bottom-0 left-0 right-0 z-50 hidden flex-col rounded-t-3xl overflow-hidden shadow-2xl" style="height:90vh;max-height:90vh;background:white">
+  <div class="bg-white rounded-t-3xl flex flex-col flex-1 min-h-0" style="max-height:90vh">
     <!-- Drawer Handle -->
     <div class="flex justify-center pt-3 pb-2">
       <div class="w-12 h-1 rounded-full bg-gray-200"></div>
@@ -129,13 +129,14 @@
     <div id="cart-panel" class="bg-white rounded-2xl border border-sage-200 flex-1 flex flex-col overflow-hidden">
 
       <!-- Cart Header -->
-      <div class="px-5 pt-5 pb-4 border-b border-sage-200">
-        <div class="flex items-center justify-between mb-4">
+      <div class="px-4 pt-3 pb-2.5 border-b border-sage-200 flex-shrink-0">
+        <div class="flex items-center justify-between mb-2.5">
           <div class="flex items-center gap-2">
             <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#16a34a,#14532d)">
               <i class="fas fa-receipt text-white text-xs"></i>
             </div>
             <h3 class="font-semibold text-gray-800">Current Sale</h3>
+            <span id="cart-count-badge" class="hidden text-xs font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full"></span>
             <span id="cart-pending-badge" class="hidden text-xs font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full"></span>
           </div>
           <button onclick="clearCart()" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Clear cart">
@@ -146,8 +147,8 @@
                class="pos-input w-full border rounded-xl px-3 py-2 text-sm">
       </div>
 
-      <!-- Cart Items -->
-      <div class="flex-1 overflow-y-auto px-4 py-3 space-y-2" id="cart-items">
+      <!-- Cart Items — primary scroll area, gets all remaining height -->
+      <div class="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 space-y-2" id="cart-items">
         <div id="empty-cart" class="flex flex-col items-center justify-center text-gray-400 py-12">
           <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
             <i class="fas fa-shopping-cart text-2xl text-primary-300"></i>
@@ -157,49 +158,51 @@
         </div>
       </div>
 
-      <!-- Cart Summary + Checkout -->
-      <div class="border-t border-sage-200 px-5 py-4 space-y-3">
+      <!-- Cart Summary + Checkout — compact, fixed footer -->
+      <div class="border-t border-sage-200 px-4 py-2.5 space-y-2 flex-shrink-0">
 
-        <!-- Totals -->
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between text-gray-500">
-            <span>Subtotal</span>
-            <span id="subtotal" class="font-medium text-gray-700">&#8358;0</span>
+        <!-- Subtotal + discount (inline, compact) -->
+        <div class="flex items-center justify-between text-sm text-gray-500">
+          <span>Subtotal <span id="subtotal" class="font-medium text-gray-700 ml-1">&#8358;0</span></span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-gray-400 text-xs">Disc &#8358;</span>
+            <input type="number" id="discount" min="0" value="0"
+                   class="pos-input w-16 border rounded-lg px-2 py-1 text-right text-sm font-medium"
+                   onchange="updateTotals()">
           </div>
-          <div class="flex justify-between items-center text-gray-500">
-            <span>Discount</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-400 text-xs">₦</span>
-              <input type="number" id="discount" min="0" value="0"
-                     class="pos-input w-20 border rounded-lg px-2 py-1 text-right text-sm font-medium"
-                     onchange="updateTotals()">
-            </div>
-          </div>
-          <div class="flex justify-between font-bold text-base pt-2 border-t border-sage-200">
-            <span class="text-gray-700">Total</span>
-            <span id="total" class="text-primary-700 text-lg">&#8358;0</span>
-          </div>
+        </div>
+
+        <!-- Total -->
+        <div class="flex justify-between items-center font-bold pt-1.5 border-t border-sage-200">
+          <span class="text-gray-700">Total</span>
+          <span id="total" class="text-primary-700 text-lg">&#8358;0</span>
         </div>
 
         <!-- Payment(s) — supports splitting across methods -->
-        <div id="payments-section" class="space-y-2">
+        <div id="payments-section" class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment</span>
-            <button type="button" onclick="addPayment()"
-                    class="text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors">
-              <i class="fas fa-plus text-xs mr-1"></i>Split payment
-            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="toggleCash()" id="cash-toggle"
+                      class="text-xs font-semibold text-gray-400 hover:text-primary-700 transition-colors hidden">
+                <i class="fas fa-calculator text-xs mr-1"></i>Change
+              </button>
+              <button type="button" onclick="addPayment()"
+                      class="text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors">
+                <i class="fas fa-plus text-xs mr-1"></i>Split
+              </button>
+            </div>
           </div>
-          <div id="payments-list" class="space-y-2"></div>
+          <div id="payments-list" class="space-y-1.5"></div>
           <div id="payment-remaining" class="text-xs font-medium text-right"></div>
         </div>
 
-        <!-- Cash Tendered (shown when a cash line exists) -->
-        <div id="cash-section">
-          <input type="number" id="cash-tendered" placeholder="Cash tendered (optional)"
-                 class="pos-input w-full border rounded-xl px-3 py-2.5 text-sm"
+        <!-- Cash Tendered (collapsed by default; toggled via "Change") -->
+        <div id="cash-section" class="hidden">
+          <input type="number" id="cash-tendered" placeholder="Cash tendered"
+                 class="pos-input w-full border rounded-xl px-3 py-2 text-sm"
                  onchange="calcChange()">
-          <div id="change-display" class="mt-2 hidden">
+          <div id="change-display" class="mt-1.5 hidden">
             <div class="flex justify-between text-sm font-semibold px-1">
               <span class="text-gray-600">Change:</span>
               <span id="change-amount" class="text-primary-700"></span>
@@ -209,7 +212,7 @@
 
         <!-- Complete Sale Button -->
         <button onclick="processSale()" id="checkout-btn" disabled
-                class="w-full text-white py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                class="w-full text-white py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">
           <i class="fas fa-check-circle"></i>
           Complete Sale
@@ -441,6 +444,7 @@ window.addEventListener('offline', () => updateConnectionStatus());
 let cart = {};
 let currentSaleId = null;
 let payments = [{ method: 'cash', amount: 0 }];   // payment lines (split-aware)
+let cashVisible = false;                          // "change calculator" collapsed by default
 
 /* ── Add product to cart ── */
 function addToCart(el) {
@@ -635,12 +639,35 @@ function updateCheckoutState() {
   btn.disabled = !hasItems || total <= 0 || Math.abs(allocated - total) > 0.01;
 }
 
+function toggleCash() {
+  cashVisible = !cashVisible;
+  calcChange();
+  if (cashVisible) {
+    const t = document.getElementById('cash-tendered');
+    if (t) t.focus();
+  }
+}
+
 function calcChange() {
   const cashDue = payments.filter(p => p.method === 'cash').reduce((s, p) => s + (p.amount || 0), 0);
   const cashSection = document.getElementById('cash-section');
   const changeDisp = document.getElementById('change-display');
-  if (cashDue <= 0) { cashSection.style.display = 'none'; changeDisp.classList.add('hidden'); return; }
-  cashSection.style.display = 'block';
+  const toggle = document.getElementById('cash-toggle');
+
+  // The "Change" toggle is only relevant when the sale has a cash component.
+  if (toggle) {
+    toggle.classList.toggle('hidden', cashDue <= 0);
+    toggle.classList.toggle('text-primary-700', cashVisible && cashDue > 0);
+    toggle.classList.toggle('text-gray-400', !(cashVisible && cashDue > 0));
+  }
+
+  if (!cashVisible || cashDue <= 0) {
+    cashSection.classList.add('hidden');
+    changeDisp.classList.add('hidden');
+    return;
+  }
+  cashSection.classList.remove('hidden');
+
   const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
   if (tendered > 0) {
     const change = tendered - cashDue;
@@ -773,13 +800,19 @@ function newSale() {
 function moveCartToDrawer() {
   const panel = document.getElementById('cart-panel');
   const content = document.getElementById('mobile-cart-content');
-  if (panel && content && panel.parentElement !== content) content.appendChild(panel);
+  if (panel && content && panel.parentElement !== content) {
+    panel.classList.remove('border', 'rounded-2xl');   // drawer supplies the card chrome
+    content.appendChild(panel);
+  }
 }
 
 function moveCartHome() {
   const panel = document.getElementById('cart-panel');
   const home = document.getElementById('cart-home');
-  if (panel && home && panel.parentElement !== home) home.appendChild(panel);
+  if (panel && home && panel.parentElement !== home) {
+    panel.classList.add('border', 'rounded-2xl');
+    home.appendChild(panel);
+  }
 }
 
 function toggleMobileCart() {
@@ -806,6 +839,7 @@ window.addEventListener('resize', () => {
 
 function updateFab() {
   const count = Object.values(cart).reduce((s, i) => s + i.qty, 0);
+  const lines = Object.keys(cart).length;
   const badge = document.getElementById('fab-count');
   if (count > 0) {
     badge.textContent = count;
@@ -814,6 +848,16 @@ function updateFab() {
   } else {
     badge.classList.add('hidden');
     badge.classList.remove('flex');
+  }
+  // Header item-count badge
+  const countBadge = document.getElementById('cart-count-badge');
+  if (countBadge) {
+    if (lines > 0) {
+      countBadge.textContent = lines + (lines === 1 ? ' item' : ' items');
+      countBadge.classList.remove('hidden');
+    } else {
+      countBadge.classList.add('hidden');
+    }
   }
 }
 
