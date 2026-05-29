@@ -124,9 +124,9 @@
     </div>
   </div>
 
-  <!-- RIGHT: Cart Panel (desktop only) -->
-  <div class="hidden lg:flex w-80 flex-shrink-0 flex-col self-start sticky top-20" style="height:calc(100vh - 104px)">
-    <div class="bg-white rounded-2xl border border-sage-200 flex-1 flex flex-col overflow-hidden">
+  <!-- RIGHT: Cart Panel — same node is relocated into the mobile drawer on small screens -->
+  <div id="cart-home" class="hidden lg:flex w-80 flex-shrink-0 flex-col self-start sticky top-20" style="height:calc(100vh - 104px)">
+    <div id="cart-panel" class="bg-white rounded-2xl border border-sage-200 flex-1 flex flex-col overflow-hidden">
 
       <!-- Cart Header -->
       <div class="px-5 pt-5 pb-4 border-b border-sage-200">
@@ -181,16 +181,20 @@
           </div>
         </div>
 
-        <!-- Payment Method -->
-        <select id="payment-method"
-                class="pos-input w-full border rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700">
-          <option value="cash">💵 Cash</option>
-          <option value="card">💳 Card</option>
-          <option value="transfer">🏦 Bank Transfer</option>
-          <option value="pos">📱 POS Terminal</option>
-        </select>
+        <!-- Payment(s) — supports splitting across methods -->
+        <div id="payments-section" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment</span>
+            <button type="button" onclick="addPayment()"
+                    class="text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors">
+              <i class="fas fa-plus text-xs mr-1"></i>Split payment
+            </button>
+          </div>
+          <div id="payments-list" class="space-y-2"></div>
+          <div id="payment-remaining" class="text-xs font-medium text-right"></div>
+        </div>
 
-        <!-- Cash Tendered -->
+        <!-- Cash Tendered (shown when a cash line exists) -->
         <div id="cash-section">
           <input type="number" id="cash-tendered" placeholder="Cash tendered (optional)"
                  class="pos-input w-full border rounded-xl px-3 py-2.5 text-sm"
@@ -397,7 +401,8 @@ async function syncPendingSales() {
         body:    JSON.stringify({
           items:          sale.items,
           discount:       sale.discount,
-          payment_method: sale.payment_method,
+          payments:       sale.payments,            // new split-payment format
+          payment_method: sale.payment_method,      // legacy fallback for older cached sales
           customer_name:  sale.customer_name || '',
         }),
       });
@@ -435,6 +440,7 @@ window.addEventListener('offline', () => updateConnectionStatus());
 ═══════════════════════════════════════════════════════════════════════ */
 let cart = {};
 let currentSaleId = null;
+let payments = [{ method: 'cash', amount: 0 }];   // payment lines (split-aware)
 
 /* ── Add product to cart ── */
 function addToCart(el) {
@@ -483,7 +489,9 @@ function renderCart() {
       <div class="flex items-center gap-1 flex-shrink-0">
         <button type="button" onclick="changeQty('${id}',-1)"
           class="w-7 h-7 bg-white border border-sage-200 rounded-lg text-xs font-bold hover:bg-red-50 hover:border-red-200 hover:text-red-500 flex items-center justify-center transition-colors">−</button>
-        <span class="w-8 text-center text-xs font-bold text-gray-800">${item.qty}</span>
+        <input type="number" min="1" max="${item.stock}" value="${item.qty}"
+          onchange="setQty('${id}', this.value)" onclick="event.stopPropagation()"
+          class="w-12 text-center text-xs font-bold text-gray-800 border border-sage-200 rounded-lg py-1 bg-white focus:outline-none focus:border-primary-400">
         <button type="button" onclick="changeQty('${id}',1)"
           class="w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center text-white transition-all hover:scale-110"
           style="background:linear-gradient(135deg,#16a34a,#14532d)">+</button>
@@ -512,35 +520,130 @@ function changeQty(id, delta) {
   renderCart();
 }
 
+/* ── Set quantity directly (typed) ── */
+function setQty(id, val) {
+  if (!cart[id]) return;
+  let q = parseInt(val, 10);
+  if (isNaN(q) || q <= 0) { delete cart[id]; renderCart(); return; }
+  if (q > cart[id].stock) {
+    q = cart[id].stock;
+    alert('Only ' + cart[id].stock + ' in stock for "' + cart[id].name + '".');
+  }
+  cart[id].qty = q;
+  renderCart();
+}
+
 function removeItem(id) { delete cart[id]; renderCart(); }
 
 function clearCart() {
   cart = {};
+  payments = [{ method: 'cash', amount: 0 }];
   const cn = document.getElementById('customer-name');
   const disc = document.getElementById('discount');
+  const tendered = document.getElementById('cash-tendered');
   if (cn) cn.value = '';
   if (disc) disc.value = '0';
+  if (tendered) tendered.value = '';
   renderCart();
 }
 
 /* ── Totals ── */
-function updateTotals() {
+function cartTotal() {
   const subtotal = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0);
   const discount = parseFloat(document.getElementById('discount').value) || 0;
-  const total = Math.max(0, subtotal - discount);
+  return Math.max(0, subtotal - discount);
+}
+
+function updateTotals() {
+  const subtotal = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0);
+  const total = cartTotal();
   document.getElementById('subtotal').textContent = '₦' + subtotal.toLocaleString();
   document.getElementById('total').textContent = '₦' + total.toLocaleString();
+  syncPayments();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAYMENTS  — single line auto-fills to total; add lines to split
+═══════════════════════════════════════════════════════════════════════ */
+const PAY_METHODS = [['cash','💵 Cash'],['card','💳 Card'],['transfer','🏦 Transfer'],['pos','📱 POS']];
+
+function syncPayments() {
+  // With a single payment line, keep it equal to the running total.
+  if (payments.length === 1) payments[0].amount = cartTotal();
+  renderPayments();
+}
+
+function renderPayments() {
+  const list = document.getElementById('payments-list');
+  const single = payments.length === 1;
+  list.innerHTML = payments.map((p, idx) => `
+    <div class="flex items-center gap-2">
+      <select onchange="setPaymentMethod(${idx}, this.value)" class="pos-input border rounded-lg px-2 py-2 text-sm flex-1">
+        ${PAY_METHODS.map(([v, l]) => `<option value="${v}" ${p.method === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+      <div class="relative w-28 flex-shrink-0">
+        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₦</span>
+        <input type="number" min="0" step="0.01" value="${p.amount}" oninput="setPaymentAmount(${idx}, this.value)"
+               class="pos-input w-full border rounded-lg pl-5 pr-2 py-2 text-right text-sm" ${single ? 'readonly' : ''}>
+      </div>
+      ${single ? '<span class="w-7 flex-shrink-0"></span>' :
+        `<button type="button" onclick="removePayment(${idx})" class="w-7 h-7 flex-shrink-0 flex items-center justify-center text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"><i class="fas fa-times text-xs"></i></button>`}
+    </div>`).join('');
+  updatePaymentRemaining();
+}
+
+function setPaymentMethod(idx, val) { payments[idx].method = val; updatePaymentRemaining(); }
+function setPaymentAmount(idx, val) { payments[idx].amount = parseFloat(val) || 0; updatePaymentRemaining(); }
+
+function addPayment() {
+  const allocated = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const remaining = Math.max(0, cartTotal() - allocated);
+  const used = payments.map(p => p.method);
+  const next = (PAY_METHODS.find(([v]) => !used.includes(v)) || ['transfer'])[0];
+  payments.push({ method: next, amount: remaining });
+  renderPayments();
+}
+
+function removePayment(idx) {
+  payments.splice(idx, 1);
+  if (payments.length === 1) payments[0].amount = cartTotal();
+  renderPayments();
+}
+
+function updatePaymentRemaining() {
+  const total = cartTotal();
+  const allocated = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const remaining = total - allocated;
+  const el = document.getElementById('payment-remaining');
+  if (Math.abs(remaining) < 0.01) {
+    el.innerHTML = '<span class="text-primary-600"><i class="fas fa-check mr-1"></i>Fully allocated</span>';
+  } else if (remaining > 0) {
+    el.innerHTML = '<span class="text-amber-600">Remaining: ₦' + remaining.toLocaleString() + '</span>';
+  } else {
+    el.innerHTML = '<span class="text-red-600">Over by ₦' + Math.abs(remaining).toLocaleString() + '</span>';
+  }
   calcChange();
+  updateCheckoutState();
+}
+
+function updateCheckoutState() {
+  const btn = document.getElementById('checkout-btn');
+  if (!btn) return;
+  const total = cartTotal();
+  const allocated = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const hasItems = Object.keys(cart).length > 0;
+  btn.disabled = !hasItems || total <= 0 || Math.abs(allocated - total) > 0.01;
 }
 
 function calcChange() {
-  const subtotal = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0);
-  const discount = parseFloat(document.getElementById('discount').value) || 0;
-  const total = Math.max(0, subtotal - discount);
-  const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
+  const cashDue = payments.filter(p => p.method === 'cash').reduce((s, p) => s + (p.amount || 0), 0);
+  const cashSection = document.getElementById('cash-section');
   const changeDisp = document.getElementById('change-display');
+  if (cashDue <= 0) { cashSection.style.display = 'none'; changeDisp.classList.add('hidden'); return; }
+  cashSection.style.display = 'block';
+  const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
   if (tendered > 0) {
-    const change = tendered - total;
+    const change = tendered - cashDue;
     const amt = document.getElementById('change-amount');
     changeDisp.classList.remove('hidden');
     amt.className = change < 0 ? 'text-red-600' : 'text-primary-700';
@@ -551,10 +654,6 @@ function calcChange() {
     changeDisp.classList.add('hidden');
   }
 }
-
-document.getElementById('payment-method').addEventListener('change', function() {
-  document.getElementById('cash-section').style.display = this.value === 'cash' ? 'block' : 'none';
-});
 
 /* ═══════════════════════════════════════════════════════════════════════
    PROCESS SALE  — online or offline
@@ -568,7 +667,7 @@ async function processSale() {
   const payload = {
     items:          Object.entries(cart).map(([id, item]) => ({ id, quantity: item.qty, price: item.price })),
     discount:       parseFloat(document.getElementById('discount').value) || 0,
-    payment_method: document.getElementById('payment-method').value,
+    payments:       payments.filter(p => (p.amount || 0) > 0).map(p => ({ method: p.method, amount: p.amount })),
     customer_name:  document.getElementById('customer-name').value.trim(),
   };
 
@@ -610,6 +709,7 @@ async function processSale() {
    payload = sale payload (always)
 ═══════════════════════════════════════════════════════════════════════ */
 function showReceipt(data, payload) {
+  closeMobileCart();   // dock the panel back and hide the drawer behind the modal
   const isOffline = !data;
   const total     = payload.items.reduce((s, i) => s + i.price * i.quantity, 0) - payload.discount;
 
@@ -667,18 +767,25 @@ function newSale() {
   btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Complete Sale';
 }
 
-/* ── Mobile Cart ── */
-function buildCartPanelHTML() {
-  const desktopCart = document.querySelector('.hidden.lg\\:flex.w-80');
-  return desktopCart ? desktopCart.innerHTML : '';
+/* ── Mobile Cart ──
+   The mobile drawer reuses the SAME cart panel node (not a clone), so every
+   input and handler keeps working with unique element IDs in both layouts. */
+function moveCartToDrawer() {
+  const panel = document.getElementById('cart-panel');
+  const content = document.getElementById('mobile-cart-content');
+  if (panel && content && panel.parentElement !== content) content.appendChild(panel);
+}
+
+function moveCartHome() {
+  const panel = document.getElementById('cart-panel');
+  const home = document.getElementById('cart-home');
+  if (panel && home && panel.parentElement !== home) home.appendChild(panel);
 }
 
 function toggleMobileCart() {
   const overlay = document.getElementById('mobile-cart-overlay');
   const drawer = document.getElementById('mobile-cart-drawer');
-  const content = document.getElementById('mobile-cart-content');
-  const desktopCart = document.querySelector('.hidden.lg\\:flex.w-80');
-  if (desktopCart) content.innerHTML = desktopCart.innerHTML;
+  moveCartToDrawer();
   overlay.classList.remove('hidden');
   drawer.classList.remove('hidden');
   drawer.classList.add('flex');
@@ -689,7 +796,13 @@ function closeMobileCart() {
   const drawer = document.getElementById('mobile-cart-drawer');
   drawer.classList.add('hidden');
   drawer.classList.remove('flex');
+  moveCartHome();   // dock the panel back into the desktop sidebar slot
 }
+
+// Keep the panel docked to the sidebar whenever we're at the lg breakpoint.
+window.addEventListener('resize', () => {
+  if (window.innerWidth >= 1024) closeMobileCart();
+});
 
 function updateFab() {
   const count = Object.values(cart).reduce((s, i) => s + i.qty, 0);
@@ -704,18 +817,12 @@ function updateFab() {
   }
 }
 
-// Patch renderCart to also update FAB
+// Patch renderCart to also update the mobile FAB count. The cart panel is a
+// single shared node, so its contents already update live in either layout.
 const _origRenderCart = renderCart;
 renderCart = function() {
   _origRenderCart();
   updateFab();
-  // refresh mobile drawer if open
-  const drawer = document.getElementById('mobile-cart-drawer');
-  if (drawer && !drawer.classList.contains('hidden')) {
-    const content = document.getElementById('mobile-cart-content');
-    const desktopCart = document.querySelector('.hidden.lg\\:flex.w-80');
-    if (desktopCart) content.innerHTML = desktopCart.innerHTML;
-  }
 };
 
 /* ── Product search & category filter ── */
@@ -734,6 +841,7 @@ function filterProducts() {
 }
 
 /* ── Init ── */
+syncPayments();             // render the default payment line
 updateConnectionStatus();   // show status bar and pending count on load
 </script>
 {% endblock %}

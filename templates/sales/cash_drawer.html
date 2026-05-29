@@ -1,0 +1,253 @@
+{% extends 'base_admin.html' %}
+{% block title %}Cash Drawer{% endblock %}
+{% block page_title %}Cash Drawer{% endblock %}
+{% block content %}
+<div class="space-y-6 max-w-5xl">
+
+  <!-- Header -->
+  <div class="bg-white rounded-2xl border border-sage-200 p-4 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        <i class="fas fa-money-bill-transfer text-white text-sm"></i>
+      </div>
+      <div>
+        <div class="font-semibold text-gray-800">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="text-xs text-gray-400">{{ today|date:"l, d F Y" }}</div>
+      </div>
+    </div>
+    <span class="px-3 py-1.5 rounded-full text-xs font-bold {% if session.is_closed %}bg-gray-100 text-gray-600{% else %}bg-primary-50 text-primary-700{% endif %}">
+      {% if session.is_closed %}<i class="fas fa-lock mr-1"></i>Day Closed{% else %}<i class="fas fa-unlock mr-1"></i>Day Open{% endif %}
+    </span>
+  </div>
+
+  <!-- Cash position cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-amber-50">
+        <i class="fas fa-arrow-right-to-bracket text-amber-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Opening Float (B/F)</div>
+      <div class="text-2xl font-bold text-amber-600">&#8358;{{ session.opening_float|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">Brought forward</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-blue-50">
+        <i class="fas fa-money-bill-wave text-blue-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cash Sales Today</div>
+      <div class="text-2xl font-bold text-blue-600">&#8358;{{ session.cash_sales|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">Cash collected</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <i class="fas fa-cash-register text-primary-600 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Expected Cash</div>
+      <div class="text-2xl font-bold text-primary-700">&#8358;{{ session.expected_cash|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">Float + cash sales</div>
+    </div>
+    <div class="stat-card p-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-purple-50">
+        <i class="fas fa-building-columns text-purple-500 text-sm"></i>
+      </div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Carried Forward</div>
+      <div class="text-2xl font-bold text-purple-600">&#8358;{{ session.closing_float|currency }}</div>
+      <div class="text-xs text-gray-400 mt-1">{% if session.is_closed %}To next day{% else %}Set at closing{% endif %}</div>
+    </div>
+  </div>
+
+  {% if not session.is_closed %}
+  <div class="grid lg:grid-cols-2 gap-5">
+
+    <!-- Set opening float -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#f59e0b,#fcd34d)"></div>
+        <h3 class="font-semibold text-gray-800">Opening Cash Balance</h3>
+      </div>
+      <form method="post" action="{% url 'cash_drawer_open' %}" class="p-5 space-y-4">
+        {% csrf_token %}
+        <p class="text-sm text-gray-500">The cash you started the day with (balance brought forward from the previous day).</p>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Opening Float (&#8358;)</label>
+          <input type="number" name="opening_float" min="0" step="0.01" value="{{ session.opening_float }}"
+                 class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+        </div>
+        <button type="submit"
+                class="text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+                style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+          <i class="fas fa-save mr-1.5"></i> Save Opening Balance
+        </button>
+      </form>
+    </div>
+
+    <!-- Close day -->
+    <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+      <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+        <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+        <h3 class="font-semibold text-gray-800">Close the Day</h3>
+      </div>
+      <form method="post" action="{% url 'cash_drawer_close' %}" class="p-5 space-y-4"
+            onsubmit="return confirm('Close the day? This locks today\'s cash record.');">
+        {% csrf_token %}
+        <div class="flex items-center justify-between text-sm bg-sage-50 rounded-xl px-4 py-3">
+          <span class="text-gray-500">Expected cash on hand</span>
+          <span class="font-bold text-primary-700">&#8358;{{ session.expected_cash|currency }}</span>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Cash Counted (&#8358;)</label>
+          <input type="number" name="counted_cash" min="0" step="0.01" value="{{ session.expected_cash }}"
+                 class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+          <p class="text-xs text-gray-400 mt-1">Physical cash counted in the drawer (for variance).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Transferred to Bank (&#8358;)</label>
+          <input type="number" name="cash_transferred_to_bank" min="0" step="0.01" value="0" id="transfer-input"
+                 oninput="updateCarry()"
+                 class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+        </div>
+        <div class="flex items-center justify-between text-sm bg-purple-50 rounded-xl px-4 py-3 border border-purple-100">
+          <span class="text-gray-500">Carried forward to next day</span>
+          <span class="font-bold text-purple-700" id="carry-display">&#8358;{{ session.expected_cash|currency }}</span>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea name="notes" rows="2" class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Optional..."></textarea>
+        </div>
+        <button type="submit"
+                class="text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90 w-full"
+                style="background:linear-gradient(135deg,#16a34a,#14532d)">
+          <i class="fas fa-lock mr-1.5"></i> Close Day &amp; Transfer
+        </button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <!-- Closed summary -->
+  <div class="bg-white rounded-2xl border border-sage-200 p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Closing Summary</h3>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+      <div class="bg-sage-50 rounded-xl p-3">
+        <div class="text-gray-400 text-xs font-medium mb-0.5">Cash Counted</div>
+        <div class="font-bold text-gray-800">&#8358;{{ session.counted_cash|currency }}</div>
+      </div>
+      <div class="bg-amber-50 rounded-xl p-3">
+        <div class="text-gray-400 text-xs font-medium mb-0.5">Transferred to Bank</div>
+        <div class="font-bold text-amber-700">&#8358;{{ session.cash_transferred_to_bank|currency }}</div>
+      </div>
+      <div class="bg-purple-50 rounded-xl p-3">
+        <div class="text-gray-400 text-xs font-medium mb-0.5">Carried Forward</div>
+        <div class="font-bold text-purple-700">&#8358;{{ session.closing_float|currency }}</div>
+      </div>
+      <div class="{% if session.variance == 0 %}bg-sage-50{% elif session.variance > 0 %}bg-blue-50{% else %}bg-red-50{% endif %} rounded-xl p-3">
+        <div class="text-gray-400 text-xs font-medium mb-0.5">Variance (Counted &minus; Expected)</div>
+        <div class="font-bold {% if session.variance == 0 %}text-gray-700{% elif session.variance > 0 %}text-blue-700{% else %}text-red-600{% endif %}">&#8358;{{ session.variance|currency }}</div>
+      </div>
+    </div>
+    {% if session.notes %}<p class="text-sm text-gray-500 mt-4"><i class="fas fa-note-sticky text-gray-300 mr-1.5"></i>{{ session.notes }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if can_view_all and all_sessions %}
+  <!-- Other cashiers today -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Other Cashiers — Today</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cashier</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Opening</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cash Sales</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Expected</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Transferred</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Carried Fwd</th>
+            <th class="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in all_sessions %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3 font-semibold text-gray-800">{{ s.cashier.get_full_name|default:s.cashier.username }}</td>
+            <td class="px-5 py-3 text-right text-gray-600">&#8358;{{ s.opening_float|currency }}</td>
+            <td class="px-5 py-3 text-right text-blue-600 font-medium">&#8358;{{ s.cash_sales|currency }}</td>
+            <td class="px-5 py-3 text-right font-bold text-primary-700">&#8358;{{ s.expected_cash|currency }}</td>
+            <td class="px-5 py-3 text-right text-amber-600">&#8358;{{ s.cash_transferred_to_bank|currency }}</td>
+            <td class="px-5 py-3 text-right text-purple-600">&#8358;{{ s.closing_float|currency }}</td>
+            <td class="px-5 py-3 text-center">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if s.is_closed %}bg-gray-100 text-gray-600{% else %}bg-primary-50 text-primary-700{% endif %}">
+                {% if s.is_closed %}Closed{% else %}Open{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- My history -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">My Recent Days</h3>
+    </div>
+    {% if my_sessions %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Opening</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cash Sales</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Expected</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Transferred</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Carried Fwd</th>
+            <th class="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in my_sessions %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3 font-semibold text-gray-800">{{ s.date|date:"D, d M Y" }}</td>
+            <td class="px-5 py-3 text-right text-gray-600">&#8358;{{ s.opening_float|currency }}</td>
+            <td class="px-5 py-3 text-right text-blue-600 font-medium">&#8358;{{ s.cash_sales|currency }}</td>
+            <td class="px-5 py-3 text-right font-bold text-primary-700">&#8358;{{ s.expected_cash|currency }}</td>
+            <td class="px-5 py-3 text-right text-amber-600">&#8358;{{ s.cash_transferred_to_bank|currency }}</td>
+            <td class="px-5 py-3 text-right text-purple-600">&#8358;{{ s.closing_float|currency }}</td>
+            <td class="px-5 py-3 text-center">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if s.is_closed %}bg-gray-100 text-gray-600{% else %}bg-primary-50 text-primary-700{% endif %}">
+                {% if s.is_closed %}Closed{% else %}Open{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-10 text-center text-gray-400 text-sm">
+      <i class="fas fa-clock-rotate-left text-2xl mb-2 block text-gray-200"></i>
+      No previous days recorded yet.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  const expectedCash = {{ session.expected_cash|stringformat:"s" }};
+  function updateCarry() {
+    const transfer = parseFloat(document.getElementById('transfer-input').value) || 0;
+    const carry = (parseFloat(expectedCash) || 0) - transfer;
+    document.getElementById('carry-display').textContent =
+      '₦' + carry.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+</script>
+{% endblock %}

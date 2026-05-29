@@ -145,7 +145,15 @@
             <td class="px-5 py-3.5 text-gray-700">{{ sale.customer.name|default:"Walk-in" }}</td>
             <td class="px-5 py-3.5 text-gray-500">{{ sale.served_by.get_full_name|default:sale.served_by.username|default:"—" }}</td>
             <td class="px-5 py-3.5">
-              {% if sale.payment_method == 'cash' %}
+              {% if sale.is_split %}
+                <div class="flex flex-wrap gap-1">
+                  {% for p in sale.payments.all %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-sage-100 text-gray-700 border border-sage-200">
+                    {{ p.get_method_display }} &#8358;{{ p.amount|currency }}
+                  </span>
+                  {% endfor %}
+                </div>
+              {% elif sale.payment_method == 'cash' %}
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
                   <i class="fas fa-money-bill-wave text-xs"></i> Cash
                 </span>

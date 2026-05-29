@@ -8,9 +8,66 @@ from django.core.paginator import Paginator
 from datetime import date, timedelta
 import json, csv, io
 from decimal import Decimal
-from .models import Sale, SaleItem, Customer, Expense, DailySummary
+from .models import Sale, SaleItem, SalePayment, Customer, Expense, DailySummary, CashDrawerSession
 from inventory.models import Product, StockMovement
 from accounts.decorators import module_required, write_required, admin_required
+
+
+# Valid methods for a single payment line (excludes the composite 'split')
+PAYMENT_LINE_METHODS = {m for m, _ in Sale.PAYMENT_LINE_METHOD}
+
+
+def _parse_payments(raw_payments, total, fallback_method='cash'):
+    """Normalise an incoming list of payment dicts into [(method, Decimal)].
+
+    Accepts a list like [{'method': 'cash', 'amount': '500'}, ...]. When the
+    list is empty/None (e.g. legacy offline sales that only sent a single
+    payment_method), a single line for the full total is synthesised.
+
+    Returns (payments, error). `payments` is a list of (method, Decimal) and
+    `error` is a string when validation fails (or None).
+    """
+    total = Decimal(str(total or 0))
+    payments = []
+    for p in (raw_payments or []):
+        method = (p.get('method') or '').strip()
+        if method not in PAYMENT_LINE_METHODS:
+            return None, f'Invalid payment method "{method}".'
+        try:
+            amount = Decimal(str(p.get('amount', 0) or 0))
+        except (ValueError, ArithmeticError):
+            return None, 'Invalid payment amount.'
+        if amount <= 0:
+            continue
+        payments.append((method, amount))
+
+    if not payments:
+        # No explicit payment lines — treat the whole total as one method.
+        method = fallback_method if fallback_method in PAYMENT_LINE_METHODS else 'cash'
+        return [(method, total)], None
+
+    paid = sum(a for _, a in payments)
+    if abs(paid - total) > Decimal('0.01'):
+        return None, f'Payments (₦{paid}) must equal the sale total (₦{total}).'
+    return payments, None
+
+
+def _record_payments(sale, payments):
+    """Create SalePayment rows and set the sale's payment_method label."""
+    for method, amount in payments:
+        SalePayment.objects.create(sale=sale, method=method, amount=amount)
+    sale.payment_method = payments[0][0] if len(payments) == 1 else 'split'
+    sale.save(update_fields=['payment_method'])
+
+
+def _payment_breakdown(sales, methods):
+    """Sum each sale's payment_list into a {method: float} breakdown."""
+    breakdown = {k: 0 for k in methods}
+    for s in sales:
+        for method, amount in s.payment_list:
+            if method in breakdown:
+                breakdown[method] += float(amount)
+    return breakdown
 
 
 @login_required
@@ -80,12 +137,17 @@ def pos_view(request):
 def new_sale(request):
     if request.method == 'POST':
         customer_id = request.POST.get('customer_id')
-        payment_method = request.POST.get('payment_method', 'cash')
         discount = Decimal(str(request.POST.get('discount_amount', 0) or 0))
         notes = request.POST.get('notes', '')
         product_ids = request.POST.getlist('product_id')
         quantities = request.POST.getlist('quantity')
         prices = request.POST.getlist('unit_price')
+
+        # Payment lines — supports split payments via parallel POST lists.
+        pay_methods = request.POST.getlist('payment_method')
+        pay_amounts = request.POST.getlist('payment_amount')
+        raw_payments = [{'method': m, 'amount': a}
+                        for m, a in zip(pay_methods, pay_amounts)]
 
         customer = None
         if customer_id:
@@ -117,15 +179,21 @@ def new_sale(request):
             messages.error(request, 'No valid items in sale.')
             return redirect('new_sale')
 
+        sale_total = sum(qty * price for _, qty, price in line_items) - discount
+        payments, pay_error = _parse_payments(raw_payments, sale_total)
+        if pay_error:
+            messages.error(request, pay_error)
+            return redirect('new_sale')
+
         sale = Sale.objects.create(
             customer=customer,
             served_by=request.user,
-            payment_method=payment_method,
             discount_amount=discount,
             notes=notes,
             status='completed',
             payment_status=True,
         )
+        _record_payments(sale, payments)
 
         for product, qty_int, price in line_items:
             SaleItem.objects.create(
@@ -352,19 +420,21 @@ def reports_view(request):
     else:
         start_date = month_start
 
-    sales = Sale.objects.filter(sale_date__date__gte=start_date, status='completed')
+    sales = Sale.objects.filter(sale_date__date__gte=start_date, status='completed').prefetch_related('payments')
     total_revenue = sum(s.total_amount for s in sales)
     total_profit = sum(s.total_profit for s in sales)
     total_transactions = sales.count()
     expenses = Expense.objects.filter(expense_date__gte=start_date)
     total_expenses = expenses.aggregate(t=Sum('amount'))['t'] or 0
     net_profit = total_profit - total_expenses
+    net_revenue = total_revenue - total_expenses
 
-    # Sales by payment method
-    payment_breakdown = {}
-    for s in sales:
-        pm = s.payment_method
-        payment_breakdown[pm] = payment_breakdown.get(pm, 0) + float(s.total_amount)
+    # Sales by payment method (split-payment aware) — drop empty buckets
+    payment_breakdown = {
+        method: amount
+        for method, amount in _payment_breakdown(sales, PAYMENT_LINE_METHODS).items()
+        if amount > 0
+    }
 
     # Top selling products
     from sales.models import SaleItem
@@ -392,6 +462,7 @@ def reports_view(request):
         'total_transactions': total_transactions,
         'total_expenses': total_expenses,
         'net_profit': net_profit,
+        'net_revenue': net_revenue,
         'payment_breakdown': payment_breakdown,
         'top_products': top_products,
         'chart_data': chart_data,
@@ -429,12 +500,12 @@ def process_sale_api(request):
             items = data.get('items', [])
             if not items:
                 return JsonResponse({'success': False, 'error': 'No items in sale.'}, status=400)
-            payment_method = data.get('payment_method', 'cash')
             discount = Decimal(str(data.get('discount', 0) or 0))
             customer_name = data.get('customer_name', '').strip()[:200]
 
             # Validate stock before touching anything
             products_to_update = []
+            sale_total = Decimal('0')
             for item in items:
                 try:
                     product = Product.objects.get(pk=item['id'])
@@ -446,6 +517,17 @@ def process_sale_api(request):
                 if product.quantity_in_stock < qty:
                     return JsonResponse({'success': False, 'error': f'Insufficient stock for "{product.name}". Available: {product.quantity_in_stock}.'}, status=400)
                 products_to_update.append((product, qty, item['price']))
+                sale_total += Decimal(str(item['price'])) * qty
+            sale_total -= discount
+
+            # Payment lines — `payments` is preferred; fall back to the legacy
+            # single `payment_method` field (used by older offline-cached sales).
+            payments, pay_error = _parse_payments(
+                data.get('payments'), sale_total,
+                fallback_method=data.get('payment_method', 'cash'),
+            )
+            if pay_error:
+                return JsonResponse({'success': False, 'error': pay_error}, status=400)
 
             customer = None
             if customer_name:
@@ -457,11 +539,11 @@ def process_sale_api(request):
             sale = Sale.objects.create(
                 customer=customer,
                 served_by=request.user,
-                payment_method=payment_method,
                 discount_amount=discount,
                 status='completed',
                 payment_status=True,
             )
+            _record_payments(sale, payments)
 
             for product, qty, price in products_to_update:
                 SaleItem.objects.create(
@@ -610,7 +692,7 @@ def daily_report(request):
         sale_date__date__gte=period_start,
         sale_date__date__lte=period_end,
         status='completed',
-    ).select_related()
+    ).prefetch_related('payments')
 
     expenses_qs = Expense.objects.filter(
         expense_date__gte=period_start,
@@ -647,10 +729,10 @@ def daily_report(request):
         breakdown = {k: 0 for k in payment_labels}
         revenue = 0
         for s in day_sales:
-            amt = float(s.total_amount)
-            revenue += amt
-            if s.payment_method in breakdown:
-                breakdown[s.payment_method] += amt
+            revenue += float(s.total_amount)
+            for method, amount in s.payment_list:
+                if method in breakdown:
+                    breakdown[method] += float(amount)
 
         exp_total = sum(float(e.amount) for e in day_expenses)
         net = revenue - exp_total
@@ -671,8 +753,11 @@ def daily_report(request):
         period_totals['expenses'] += exp_total
         period_totals['net'] += net
 
-    # Chart: daily revenue for the period (days with any data)
+    # Chart: daily revenue for the period in chronological order (oldest → newest)
     chart_data = [{'date': r['date'].strftime('%d %b'), 'revenue': r['revenue']} for r in daily_rows]
+
+    # Table lists the most recent day first so the current day is at the top.
+    daily_rows = list(reversed(daily_rows))
 
     return render(request, 'sales/daily_report.html', {
         'daily_rows': daily_rows,
@@ -698,7 +783,7 @@ def daily_report_detail(request, report_date):
     sales = Sale.objects.filter(
         sale_date__date=target,
         status='completed',
-    ).select_related('customer', 'served_by').prefetch_related('items__product').order_by('sale_date')
+    ).select_related('customer', 'served_by').prefetch_related('items__product', 'payments').order_by('sale_date')
 
     expenses = Expense.objects.filter(expense_date=target).order_by('created_at')
 
@@ -713,10 +798,10 @@ def daily_report_detail(request, report_date):
     breakdown = {k: 0 for k in payment_labels}
     revenue = 0
     for s in sales:
-        amt = float(s.total_amount)
-        revenue += amt
-        if s.payment_method in breakdown:
-            breakdown[s.payment_method] += amt
+        revenue += float(s.total_amount)
+        for method, amount in s.payment_list:
+            if method in breakdown:
+                breakdown[method] += float(amount)
 
     exp_total = sum(float(e.amount) for e in expenses)
     net = revenue - exp_total
@@ -742,3 +827,105 @@ def daily_report_detail(request, report_date):
         'prev_date': prev_date,
         'next_date': next_date if next_date <= today else None,
     })
+
+
+# ── Cash drawer (per cashier, per day) ──────────────────────────────────────
+
+def _user_can_view_all_cash(user):
+    if user.is_superuser:
+        return True
+    try:
+        return user.staff_profile.has_module_access('reports')
+    except Exception:
+        return False
+
+
+def _suggested_opening_float(user, day):
+    """Carry forward the closing float from this cashier's most recent
+    closed session before `day`."""
+    prev = CashDrawerSession.objects.filter(
+        cashier=user, date__lt=day, is_closed=True
+    ).order_by('-date').first()
+    return prev.closing_float if prev else Decimal('0')
+
+
+@login_required
+@module_required('pos')
+def cash_drawer(request):
+    today = timezone.localdate()
+    session, created = CashDrawerSession.objects.get_or_create(
+        cashier=request.user, date=today,
+        defaults={'opening_float': _suggested_opening_float(request.user, today)},
+    )
+
+    my_sessions = CashDrawerSession.objects.filter(
+        cashier=request.user
+    ).exclude(pk=session.pk).order_by('-date')[:30]
+
+    can_view_all = _user_can_view_all_cash(request.user)
+    all_sessions = None
+    if can_view_all:
+        all_sessions = CashDrawerSession.objects.select_related('cashier').filter(
+            date=today
+        ).exclude(pk=session.pk).order_by('cashier__username')
+
+    return render(request, 'sales/cash_drawer.html', {
+        'session': session,
+        'my_sessions': my_sessions,
+        'all_sessions': all_sessions,
+        'can_view_all': can_view_all,
+        'today': today,
+    })
+
+
+@login_required
+@module_required('pos')
+def cash_drawer_open(request):
+    if request.method == 'POST':
+        today = timezone.localdate()
+        session, _ = CashDrawerSession.objects.get_or_create(
+            cashier=request.user, date=today,
+            defaults={'opening_float': _suggested_opening_float(request.user, today)},
+        )
+        if session.is_closed:
+            messages.error(request, 'Today\'s drawer is already closed and cannot be changed.')
+            return redirect('cash_drawer')
+        try:
+            session.opening_float = Decimal(str(request.POST.get('opening_float', 0) or 0))
+        except (ValueError, ArithmeticError):
+            messages.error(request, 'Invalid opening float amount.')
+            return redirect('cash_drawer')
+        session.save(update_fields=['opening_float', 'updated_at'])
+        messages.success(request, 'Opening cash balance saved.')
+    return redirect('cash_drawer')
+
+
+@login_required
+@module_required('pos')
+def cash_drawer_close(request):
+    if request.method == 'POST':
+        today = timezone.localdate()
+        session = get_object_or_404(CashDrawerSession, cashier=request.user, date=today)
+        if session.is_closed:
+            messages.error(request, 'Today\'s drawer is already closed.')
+            return redirect('cash_drawer')
+        try:
+            transferred = Decimal(str(request.POST.get('cash_transferred_to_bank', 0) or 0))
+            counted = Decimal(str(request.POST.get('counted_cash', 0) or 0))
+        except (ValueError, ArithmeticError):
+            messages.error(request, 'Invalid amount entered.')
+            return redirect('cash_drawer')
+
+        session.cash_transferred_to_bank = transferred
+        session.counted_cash = counted
+        # Cash carried forward to the next day = expected on hand − transferred.
+        session.closing_float = session.expected_cash - transferred
+        session.notes = request.POST.get('notes', '')[:1000]
+        session.is_closed = True
+        session.closed_at = timezone.now()
+        session.save()
+        messages.success(
+            request,
+            f'Day closed. ₦{session.closing_float} carried forward to the next day.'
+        )
+    return redirect('cash_drawer')

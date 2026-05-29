@@ -69,6 +69,7 @@
       </div>
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Expenses</div>
       <div class="text-2xl font-bold text-red-500">&#8358;{{ total_expenses|currency }}</div>
+      <div class="text-xs font-medium mt-1 {% if net_revenue >= 0 %}text-primary-600{% else %}text-red-600{% endif %}">Net revenue: &#8358;{{ net_revenue|currency }}</div>
     </div>
     {% if user_can_view_financials %}
     <div class="stat-card p-5 relative overflow-hidden">

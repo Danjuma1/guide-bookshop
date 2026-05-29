@@ -39,6 +39,14 @@ class OnlineOrder(models.Model):
     order_date = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Stock is deducted once the order is confirmed; the sale is recorded once
+    # it is delivered. These guard against double-counting on repeated saves.
+    stock_deducted = models.BooleanField(default=False)
+    recorded_sale = models.ForeignKey(
+        'sales.Sale', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+
     def __str__(self):
         return self.order_number
 

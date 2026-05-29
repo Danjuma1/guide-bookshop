@@ -280,7 +280,13 @@
       {% endif %}
       <div class="div-solid"></div>
       <div class="t-row grand"><span>TOTAL</span><span>&#8358;{{ sale.total_amount|floatformat:2|intcomma }}</span></div>
+      {% if sale.is_split %}
+      {% for p in sale.payments.all %}
+      <div class="t-row payment"><span>{% if forloop.first %}Payment{% endif %}</span><span>{{ p.get_method_display|upper }} &#8358;{{ p.amount|floatformat:2|intcomma }}</span></div>
+      {% endfor %}
+      {% else %}
       <div class="t-row payment"><span>Payment</span><span>{{ sale.get_payment_method_display|upper }}</span></div>
+      {% endif %}
     </div>
 
     <div class="div-dash"></div>

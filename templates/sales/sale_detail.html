@@ -73,7 +73,15 @@
           </div>
           <div>
             <div class="text-xs text-gray-400 uppercase tracking-wide font-medium">Payment</div>
+            {% if sale.is_split %}
+            <div class="font-semibold text-gray-800 text-sm space-y-0.5">
+              {% for p in sale.payments.all %}
+              <div>{{ p.get_method_display }}: &#8358;{{ p.amount|currency }}</div>
+              {% endfor %}
+            </div>
+            {% else %}
             <div class="font-semibold text-gray-800 text-sm">{{ sale.get_payment_method_display }}</div>
+            {% endif %}
           </div>
         </div>
         <div class="flex items-start gap-2">

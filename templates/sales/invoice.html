@@ -325,7 +325,12 @@
     </div>
     <div class="info-cell">
       <div class="info-label">Payment Method</div>
+      {% if sale.is_split %}
+      <div class="info-value">Split</div>
+      {% for p in sale.payments.all %}<div class="info-sub">{{ p.get_method_display }}: &#8358;{{ p.amount|currency }}</div>{% endfor %}
+      {% else %}
       <div class="info-value">{{ sale.get_payment_method_display }}</div>
+      {% endif %}
       <div class="info-sub">{% if sale.payment_status %}&#10003; Paid{% else %}&#9675; Pending{% endif %}</div>
     </div>
     <div class="info-cell">

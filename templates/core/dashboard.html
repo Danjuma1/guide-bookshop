@@ -30,9 +30,11 @@
         </div>
       </div>
       <div class="text-xl sm:text-2xl font-bold text-gray-800">&#8358;{{ today_revenue|currency }}</div>
-      <div class="flex items-center gap-1.5 mt-2">
+      <div class="flex items-center gap-1.5 mt-2 flex-wrap">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">{{ today_transactions }} sale{{ today_transactions|pluralize }}</span>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600">&minus;&#8358;{{ today_expenses|currency }} exp</span>
       </div>
+      <div class="text-xs text-gray-500 mt-1.5">Net: <span class="font-bold {% if today_net >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">&#8358;{{ today_net|currency }}</span></div>
     </div>
 
     <div class="stat-card p-5 overflow-hidden relative">
@@ -45,9 +47,11 @@
         </div>
       </div>
       <div class="text-xl sm:text-2xl font-bold text-gray-800">&#8358;{{ monthly_revenue|currency }}</div>
-      <div class="flex items-center gap-1.5 mt-2">
+      <div class="flex items-center gap-1.5 mt-2 flex-wrap">
         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{{ monthly_transactions }} sale{{ monthly_transactions|pluralize }}</span>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600">&minus;&#8358;{{ monthly_expenses|currency }} exp</span>
       </div>
+      <div class="text-xs text-gray-500 mt-1.5">Net: <span class="font-bold {% if monthly_net >= 0 %}text-primary-700{% else %}text-red-600{% endif %}">&#8358;{{ monthly_net|currency }}</span></div>
     </div>
 
     <div class="stat-card p-5 overflow-hidden relative">

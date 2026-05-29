@@ -289,16 +289,105 @@ def admin_order_detail(request, pk):
     return render(request, 'ecommerce/admin_order_detail.html', {'order': order})
 
 
+# Statuses at which the order's stock is considered committed (deducted).
+_STOCK_COMMITTED_STATUSES = {'confirmed', 'processing', 'shipped', 'delivered'}
+
+
+def _deduct_order_stock(order, user):
+    """Decrement stock for each order item and log the movement. Idempotent
+    via order.stock_deducted."""
+    from inventory.models import StockMovement
+    for item in order.items.select_related('product'):
+        product = item.product
+        prev = product.quantity_in_stock
+        product.quantity_in_stock = max(0, product.quantity_in_stock - item.quantity)
+        product.save(update_fields=['quantity_in_stock', 'updated_at'])
+        StockMovement.objects.create(
+            product=product, movement_type='out',
+            quantity=item.quantity, previous_stock=prev,
+            new_stock=product.quantity_in_stock,
+            reference=order.order_number,
+            notes='Online order confirmed',
+            created_by=user,
+        )
+    order.stock_deducted = True
+
+
+def _restore_order_stock(order, user):
+    """Return stock previously deducted for an order (e.g. on cancellation)."""
+    from inventory.models import StockMovement
+    for item in order.items.select_related('product'):
+        product = item.product
+        prev = product.quantity_in_stock
+        product.quantity_in_stock += item.quantity
+        product.save(update_fields=['quantity_in_stock', 'updated_at'])
+        StockMovement.objects.create(
+            product=product, movement_type='return',
+            quantity=item.quantity, previous_stock=prev,
+            new_stock=product.quantity_in_stock,
+            reference=f'CANCEL-{order.order_number}',
+            notes='Online order cancelled',
+            created_by=user,
+        )
+    order.stock_deducted = False
+
+
+def _record_order_sale(order, user):
+    """Create a completed Sale mirroring a delivered online order so it flows
+    into all sales reporting. Stock is NOT touched here (already deducted at
+    confirmation). Idempotent via order.recorded_sale."""
+    from django.utils import timezone
+    from sales.models import Sale, SaleItem, SalePayment
+    sale = Sale.objects.create(
+        served_by=user,
+        payment_method='online',
+        discount_amount=order.discount_amount,
+        status='completed',
+        payment_status=True,
+        sale_date=timezone.now(),
+        notes=f'Online order {order.order_number}',
+    )
+    for item in order.items.select_related('product'):
+        SaleItem.objects.create(
+            sale=sale, product=item.product,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            unit_cost=item.product.cost_price,
+        )
+    SalePayment.objects.create(sale=sale, method='online', amount=sale.total_amount)
+    order.recorded_sale = sale
+
+
 @login_required
 @module_required('online_orders')
 def update_order_status(request, pk):
     order = get_object_or_404(OnlineOrder, pk=pk)
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        if new_status in dict(OnlineOrder.STATUS):
+        if new_status in dict(OnlineOrder.STATUS) and new_status != order.status:
             order.status = new_status
+
+            # Reserve stock the first time the order is committed.
+            if new_status in _STOCK_COMMITTED_STATUSES and not order.stock_deducted:
+                _deduct_order_stock(order, request.user)
+
+            # Recognise the sale once delivered.
+            if new_status == 'delivered' and order.recorded_sale is None:
+                _record_order_sale(order, request.user)
+
+            # On cancellation, undo stock and void any recorded sale.
+            if new_status == 'cancelled':
+                if order.stock_deducted:
+                    _restore_order_stock(order, request.user)
+                if order.recorded_sale is not None:
+                    sale = order.recorded_sale
+                    sale.status = 'cancelled'
+                    sale.save(update_fields=['status', 'updated_at'])
+
             order.save()
-        messages.success(request, f'Order {order.order_number} status updated.')
+            messages.success(request, f'Order {order.order_number} status updated.')
+        else:
+            messages.info(request, 'Order status unchanged.')
     next_url = request.POST.get('next', '')
     if next_url == 'detail':
         return redirect('admin_order_detail', pk=pk)

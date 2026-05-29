@@ -6,7 +6,7 @@ from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from datetime import timedelta, date
 from inventory.models import Product, Category
-from sales.models import Sale, SaleItem
+from sales.models import Sale, SaleItem, Expense
 from ecommerce.models import OnlineOrder
 from .models import Banner
 from accounts.decorators import admin_required
@@ -56,6 +56,12 @@ def dashboard(request):
     monthly_revenue = sum(s.total_amount for s in monthly_sales)
     monthly_transactions = monthly_sales.count()
 
+    # Expenses are deducted from revenue to give a net figure.
+    today_expenses = Expense.objects.filter(expense_date=today).aggregate(t=Sum('amount'))['t'] or 0
+    monthly_expenses = Expense.objects.filter(expense_date__gte=month_start).aggregate(t=Sum('amount'))['t'] or 0
+    today_net = today_revenue - today_expenses
+    monthly_net = monthly_revenue - monthly_expenses
+
     low_stock_count = Product.objects.filter(
         quantity_in_stock__lte=F('reorder_level'), is_active=True
     ).count()
@@ -77,8 +83,12 @@ def dashboard(request):
     context = {
         'today_revenue': today_revenue,
         'today_transactions': today_transactions,
+        'today_expenses': today_expenses,
+        'today_net': today_net,
         'monthly_revenue': monthly_revenue,
         'monthly_transactions': monthly_transactions,
+        'monthly_expenses': monthly_expenses,
+        'monthly_net': monthly_net,
         'low_stock_count': low_stock_count,
         'out_of_stock': out_of_stock,
         'recent_sales': recent_sales,
