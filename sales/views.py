@@ -8,7 +8,7 @@ from django.core.paginator import Paginator
 from datetime import date, timedelta
 import json, csv, io
 from decimal import Decimal
-from .models import Sale, SaleItem, SalePayment, Customer, Expense, DailySummary, CashDrawerSession
+from .models import Sale, SaleItem, SalePayment, Customer, Expense, DailySummary, CashDrawerSession, CreditAccount, CreditTransaction, CreditTransactionItem
 from inventory.models import Product, StockMovement
 from accounts.decorators import module_required, write_required, admin_required
 
@@ -901,6 +901,47 @@ def cash_drawer_open(request):
 
 
 @login_required
+@module_required('reports')
+def cash_drawer_overview(request):
+    """Admin view: all cashiers' cash sessions for a given date."""
+    today = timezone.localdate()
+    date_str = request.GET.get('date', today.isoformat())
+    try:
+        from datetime import datetime as _dt
+        target_date = _dt.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        target_date = today
+
+    sessions = (
+        CashDrawerSession.objects
+        .filter(date=target_date)
+        .select_related('cashier')
+        .order_by('cashier__first_name', 'cashier__username')
+    )
+
+    totals = {
+        'opening': sum(s.opening_float for s in sessions),
+        'cash_sales': sum(s.cash_sales for s in sessions),
+        'expected': sum(s.expected_cash for s in sessions),
+        'transferred': sum(s.cash_transferred_to_bank for s in sessions),
+        'closing': sum(s.closing_float for s in sessions),
+    }
+
+    prev_date = target_date - timedelta(days=1)
+    next_date = target_date + timedelta(days=1)
+
+    return render(request, 'sales/cash_drawer_overview.html', {
+        'sessions': sessions,
+        'target_date': target_date,
+        'date_str': date_str,
+        'today': today,
+        'totals': totals,
+        'prev_date': prev_date,
+        'next_date': next_date if next_date <= today else None,
+    })
+
+
+@login_required
 @module_required('pos')
 def cash_drawer_close(request):
     if request.method == 'POST':
@@ -929,3 +970,257 @@ def cash_drawer_close(request):
             f'Day closed. ₦{session.closing_float} carried forward to the next day.'
         )
     return redirect('cash_drawer')
+
+
+# ── Credit accounts ──────────────────────────────────────────────────────────
+
+@login_required
+@module_required('customers')
+def credit_list(request):
+    accounts = (
+        CreditAccount.objects
+        .select_related('customer')
+        .prefetch_related('transactions')
+        .order_by('customer__name')
+    )
+    return render(request, 'sales/credit_list.html', {'accounts': accounts})
+
+
+@login_required
+@module_required('customers')
+def credit_detail(request, pk):
+    account = get_object_or_404(
+        CreditAccount.objects.select_related('customer').prefetch_related('transactions'),
+        pk=pk,
+    )
+    transactions = account.transactions.prefetch_related('items__product').order_by('date', 'created_at')
+
+    running = Decimal('0')
+    ledger = []
+    for txn in transactions:
+        if txn.transaction_type == 'issue':
+            running += txn.amount
+        else:
+            running -= txn.amount
+        ledger.append({'txn': txn, 'balance': running})
+    ledger.reverse()
+
+    return render(request, 'sales/credit_detail.html', {
+        'account': account,
+        'ledger': ledger,
+        'today': date.today(),
+    })
+
+
+@login_required
+@module_required('customers')
+@write_required
+def credit_account_create(request, customer_pk):
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    if hasattr(customer, 'credit_account'):
+        messages.info(request, f'{customer.name} already has a credit account.')
+        return redirect('credit_detail', pk=customer.credit_account.pk)
+    if request.method == 'POST':
+        account = CreditAccount.objects.create(
+            customer=customer,
+            notes=request.POST.get('notes', ''),
+            created_by=request.user,
+        )
+        messages.success(request, f'Credit account created for {customer.name}.')
+        return redirect('credit_detail', pk=account.pk)
+    return render(request, 'sales/credit_account_form.html', {'customer': customer})
+
+
+@login_required
+@module_required('customers')
+@write_required
+def credit_issue(request, account_pk):
+    account = get_object_or_404(CreditAccount, pk=account_pk)
+    if not account.is_active:
+        messages.error(request, 'This credit account is inactive.')
+        return redirect('credit_detail', pk=account.pk)
+
+    if request.method == 'POST':
+        product_ids = request.POST.getlist('product_id')
+        quantities = request.POST.getlist('quantity')
+        prices = request.POST.getlist('unit_price')
+        date_str = request.POST.get('date', '')
+        notes = request.POST.get('notes', '')
+
+        line_items = []
+        for pid, qty, price in zip(product_ids, quantities, prices):
+            if not pid or not qty:
+                continue
+            try:
+                product = Product.objects.get(pk=pid, is_active=True)
+                qty_int = int(qty)
+                if qty_int < 1:
+                    messages.error(request, f'Invalid quantity for {product.name}.')
+                    return redirect('credit_issue', account_pk=account_pk)
+                if product.quantity_in_stock < qty_int:
+                    messages.error(request, f'Insufficient stock for "{product.name}". Available: {product.quantity_in_stock}.')
+                    return redirect('credit_issue', account_pk=account_pk)
+                line_items.append((product, qty_int, Decimal(str(price))))
+            except (Product.DoesNotExist, ValueError):
+                messages.error(request, 'Invalid product or quantity.')
+                return redirect('credit_issue', account_pk=account_pk)
+
+        if not line_items:
+            messages.error(request, 'No valid items to issue.')
+            return redirect('credit_issue', account_pk=account_pk)
+
+        total = sum(qty * price for _, qty, price in line_items)
+
+        try:
+            issue_date = date.fromisoformat(date_str) if date_str else date.today()
+        except ValueError:
+            issue_date = date.today()
+
+        txn = CreditTransaction.objects.create(
+            account=account,
+            transaction_type='issue',
+            date=issue_date,
+            amount=total,
+            notes=notes,
+            recorded_by=request.user,
+        )
+
+        for product, qty_int, price in line_items:
+            CreditTransactionItem.objects.create(
+                transaction=txn, product=product,
+                quantity=qty_int, unit_price=price,
+            )
+            prev = product.quantity_in_stock
+            product.quantity_in_stock = max(0, product.quantity_in_stock - qty_int)
+            product.save()
+            StockMovement.objects.create(
+                product=product, movement_type='out',
+                quantity=qty_int, previous_stock=prev,
+                new_stock=product.quantity_in_stock,
+                reference=txn.reference,
+                notes=f'Credit issuance to {account.customer.name}',
+                created_by=request.user,
+            )
+
+        messages.success(request, f'Goods issued. Reference: {txn.reference}')
+        return redirect('credit_detail', pk=account.pk)
+
+    products = Product.objects.filter(is_active=True).order_by('name')
+    return render(request, 'sales/credit_issue.html', {
+        'account': account,
+        'products': products,
+        'today': date.today().isoformat(),
+    })
+
+
+@login_required
+@module_required('customers')
+@write_required
+def credit_payment(request, account_pk):
+    account = get_object_or_404(CreditAccount, pk=account_pk)
+    if request.method == 'POST':
+        try:
+            amount = Decimal(str(request.POST.get('amount', 0) or 0))
+        except (ValueError, ArithmeticError):
+            messages.error(request, 'Invalid amount.')
+            return redirect('credit_detail', pk=account.pk)
+
+        if amount <= 0:
+            messages.error(request, 'Payment amount must be greater than zero.')
+            return redirect('credit_detail', pk=account.pk)
+
+        date_str = request.POST.get('date', '')
+        try:
+            pay_date = date.fromisoformat(date_str) if date_str else date.today()
+        except ValueError:
+            pay_date = date.today()
+
+        txn = CreditTransaction.objects.create(
+            account=account,
+            transaction_type='payment',
+            date=pay_date,
+            amount=amount,
+            notes=request.POST.get('notes', ''),
+            recorded_by=request.user,
+        )
+        messages.success(request, f'Payment of ₦{amount:,.2f} recorded. Ref: {txn.reference}')
+    return redirect('credit_detail', pk=account.pk)
+
+
+@login_required
+@module_required('customers')
+@write_required
+def credit_return(request, account_pk):
+    account = get_object_or_404(CreditAccount, pk=account_pk)
+    if not account.is_active:
+        messages.error(request, 'This credit account is inactive.')
+        return redirect('credit_detail', pk=account.pk)
+
+    if request.method == 'POST':
+        product_ids = request.POST.getlist('product_id')
+        quantities = request.POST.getlist('quantity')
+        prices = request.POST.getlist('unit_price')
+        date_str = request.POST.get('date', '')
+        notes = request.POST.get('notes', '')
+
+        line_items = []
+        for pid, qty, price in zip(product_ids, quantities, prices):
+            if not pid or not qty:
+                continue
+            try:
+                product = Product.objects.get(pk=pid, is_active=True)
+                qty_int = int(qty)
+                if qty_int < 1:
+                    messages.error(request, f'Invalid quantity for {product.name}.')
+                    return redirect('credit_return', account_pk=account_pk)
+                line_items.append((product, qty_int, Decimal(str(price))))
+            except (Product.DoesNotExist, ValueError):
+                messages.error(request, 'Invalid product or quantity.')
+                return redirect('credit_return', account_pk=account_pk)
+
+        if not line_items:
+            messages.error(request, 'No valid items to return.')
+            return redirect('credit_return', account_pk=account_pk)
+
+        total = sum(qty * price for _, qty, price in line_items)
+
+        try:
+            ret_date = date.fromisoformat(date_str) if date_str else date.today()
+        except ValueError:
+            ret_date = date.today()
+
+        txn = CreditTransaction.objects.create(
+            account=account,
+            transaction_type='return',
+            date=ret_date,
+            amount=total,
+            notes=notes,
+            recorded_by=request.user,
+        )
+
+        for product, qty_int, price in line_items:
+            CreditTransactionItem.objects.create(
+                transaction=txn, product=product,
+                quantity=qty_int, unit_price=price,
+            )
+            prev = product.quantity_in_stock
+            product.quantity_in_stock += qty_int
+            product.save()
+            StockMovement.objects.create(
+                product=product, movement_type='return',
+                quantity=qty_int, previous_stock=prev,
+                new_stock=product.quantity_in_stock,
+                reference=txn.reference,
+                notes=f'Credit return from {account.customer.name}',
+                created_by=request.user,
+            )
+
+        messages.success(request, f'Return recorded. Reference: {txn.reference}')
+        return redirect('credit_detail', pk=account.pk)
+
+    products = Product.objects.filter(is_active=True).order_by('name')
+    return render(request, 'sales/credit_return.html', {
+        'account': account,
+        'products': products,
+        'today': date.today().isoformat(),
+    })

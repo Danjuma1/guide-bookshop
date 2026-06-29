@@ -1,0 +1,77 @@
+{% extends 'base_admin.html' %}
+{% block title %}Credit Accounts{% endblock %}
+{% block page_title %}Credit Accounts{% endblock %}
+{% block content %}
+<div class="space-y-5 max-w-5xl">
+
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="text-lg font-bold text-gray-800">Credit Accounts</h2>
+      <p class="text-sm text-gray-400">Customers buying on credit — track goods issued, payments, and returns.</p>
+    </div>
+    <a href="{% url 'customer_list' %}"
+       class="px-4 py-2 text-sm font-semibold rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-50 transition-colors">
+      <i class="fas fa-users mr-1.5 text-xs"></i> Manage Customers
+    </a>
+  </div>
+
+  {% if accounts %}
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Total Issued</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Total Paid</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Total Returned</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Outstanding</th>
+            <th class="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-50">
+          {% for account in accounts %}
+          {% with bal=account.balance_outstanding %}
+          <tr class="hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3">
+              <div class="font-semibold text-gray-800">{{ account.customer.name }}</div>
+              {% if account.customer.phone %}
+              <div class="text-xs text-gray-400">{{ account.customer.phone }}</div>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-right text-gray-600">&#8358;{{ account.total_issued|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-primary-600 font-medium">&#8358;{{ account.total_paid|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-orange-600">&#8358;{{ account.total_returned|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right font-bold {% if bal > 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+              &#8358;{{ bal|floatformat:2 }}
+            </td>
+            <td class="px-5 py-3 text-center">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if account.is_active %}bg-primary-50 text-primary-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+                {% if account.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </td>
+            <td class="px-5 py-3">
+              <a href="{% url 'credit_detail' account.pk %}"
+                 class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90"
+                 style="background:linear-gradient(135deg,#16a34a,#14532d)">View</a>
+            </td>
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-white rounded-2xl border border-sage-200 p-16 text-center">
+    <i class="fas fa-handshake text-4xl text-gray-200 mb-3 block"></i>
+    <p class="text-gray-500 font-medium">No credit accounts yet.</p>
+    <p class="text-gray-400 text-sm mt-1">Open a customer's profile and click <strong>Set Up Credit Account</strong> to get started.</p>
+    <a href="{% url 'customer_list' %}" class="inline-block mt-4 px-5 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all"
+       style="background:linear-gradient(135deg,#16a34a,#14532d)">Go to Customers</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

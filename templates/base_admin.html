@@ -136,6 +136,9 @@
     <a href="{% url 'customer_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'customer_list,customer_add,customer_detail,customer_edit' %}active{% else %}text-green-200{% endif %}">
       <i class="fas fa-users w-4 text-center text-green-400 text-xs"></i><span>Customers</span>
     </a>
+    <a href="{% url 'credit_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'credit_list,credit_detail,credit_issue,credit_return,credit_account_create' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-handshake w-4 text-center text-green-400 text-xs"></i><span>Credit Accounts</span>
+    </a>
     {% endif %}
     {% if user_modules.expenses %}
     <a href="{% url 'expense_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'expense_list,expense_add,expense_edit' %}active{% else %}text-green-200{% endif %}">
@@ -199,6 +202,9 @@
     </a>
     <a href="{% url 'daily_report' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un|in_list:'daily_report,daily_report_detail' %}active{% else %}text-green-200{% endif %}">
       <i class="fas fa-calendar-day w-4 text-center text-green-400 text-xs"></i><span>Daily Report</span>
+    </a>
+    <a href="{% url 'cash_drawer_overview' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-0.5 {% if un == 'cash_drawer_overview' %}active{% else %}text-green-200{% endif %}">
+      <i class="fas fa-money-bill-transfer w-4 text-center text-green-400 text-xs"></i><span>Cash Overview</span>
     </a>
     {% endif %}
     {% if user_modules.staff %}

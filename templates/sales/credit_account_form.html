@@ -1,0 +1,52 @@
+{% extends 'base_admin.html' %}
+{% block title %}Set Up Credit Account — {{ customer.name }}{% endblock %}
+{% block page_title %}Set Up Credit Account{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <div class="mb-4">
+    <a href="{% url 'customer_detail' customer.pk %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to {{ customer.name }}
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-primary-50">
+        <i class="fas fa-handshake text-primary-600 text-xs"></i>
+      </div>
+      <div>
+        <h3 class="font-semibold text-gray-800">Create Credit Account</h3>
+        <p class="text-xs text-gray-400">for {{ customer.name }}</p>
+      </div>
+    </div>
+    <div class="p-6">
+      <p class="text-sm text-gray-600 mb-5">
+        This will allow <strong>{{ customer.name }}</strong> to collect goods on credit.
+        Stock will be deducted immediately when goods are issued and restored when items are returned.
+      </p>
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (optional)</label>
+          <textarea name="notes" rows="3"
+                    class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400"
+                    placeholder="e.g. School, bulk buyer, payment expected end of term..."></textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit"
+                  class="flex-1 text-white py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                  style="background:linear-gradient(135deg,#16a34a,#14532d)">
+            <i class="fas fa-check"></i> Create Credit Account
+          </button>
+          <a href="{% url 'customer_detail' customer.pk %}"
+             class="flex-1 bg-sage-100 text-gray-700 py-3.5 rounded-2xl font-semibold text-sm text-center hover:bg-sage-200 transition-colors border border-sage-200">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

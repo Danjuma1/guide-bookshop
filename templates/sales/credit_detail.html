@@ -1,0 +1,241 @@
+{% extends 'base_admin.html' %}
+{% block title %}Credit — {{ account.customer.name }}{% endblock %}
+{% block page_title %}Credit Account{% endblock %}
+{% block content %}
+<div class="space-y-5 max-w-5xl">
+
+  <div class="mb-1">
+    <a href="{% url 'credit_list' %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to Credit Accounts
+    </a>
+  </div>
+
+  <!-- Header card -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#16a34a,#4ade80,#86efac)"></div>
+    <div class="p-5">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+               style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            {{ account.customer.name.0|upper }}
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-gray-800">{{ account.customer.name }}</h2>
+            <div class="text-sm text-gray-400 mt-0.5">
+              {% if account.customer.phone %}{{ account.customer.phone }} · {% endif %}
+              Credit account since {{ account.created_at|date:"d M Y" }}
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          {% if user_can_write and account.is_active %}
+          <a href="{% url 'credit_issue' account.pk %}"
+             class="px-4 py-2 text-sm font-semibold rounded-xl text-white flex items-center gap-1.5 transition-all hover:opacity-90"
+             style="background:linear-gradient(135deg,#16a34a,#14532d)">
+            <i class="fas fa-box-open text-xs"></i> Issue Goods
+          </a>
+          <button onclick="document.getElementById('pay-modal').classList.remove('hidden')"
+                  class="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white flex items-center gap-1.5 hover:bg-blue-700 transition-colors">
+            <i class="fas fa-money-bill-wave text-xs"></i> Record Payment
+          </button>
+          <a href="{% url 'credit_return' account.pk %}"
+             class="px-4 py-2 text-sm font-semibold rounded-xl bg-orange-500 text-white flex items-center gap-1.5 hover:bg-orange-600 transition-colors">
+            <i class="fas fa-rotate-left text-xs"></i> Record Return
+          </a>
+          {% endif %}
+          <a href="{% url 'customer_detail' account.customer.pk %}"
+             class="px-4 py-2 text-sm font-semibold rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-50 transition-colors">
+            <i class="fas fa-user text-xs mr-1"></i> Customer
+          </a>
+        </div>
+      </div>
+
+      <!-- Balance summary -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-gray-50 rounded-xl p-3">
+          <div class="text-xs text-gray-400 font-medium mb-0.5">Total Issued</div>
+          <div class="font-bold text-gray-800">&#8358;{{ account.total_issued|floatformat:2 }}</div>
+        </div>
+        <div class="bg-primary-50 rounded-xl p-3">
+          <div class="text-xs text-gray-400 font-medium mb-0.5">Total Paid</div>
+          <div class="font-bold text-primary-700">&#8358;{{ account.total_paid|floatformat:2 }}</div>
+        </div>
+        <div class="bg-orange-50 rounded-xl p-3">
+          <div class="text-xs text-gray-400 font-medium mb-0.5">Total Returned</div>
+          <div class="font-bold text-orange-600">&#8358;{{ account.total_returned|floatformat:2 }}</div>
+        </div>
+        <div class="rounded-xl p-3 {% if account.balance_outstanding > 0 %}bg-red-50{% else %}bg-green-50{% endif %}">
+          <div class="text-xs text-gray-400 font-medium mb-0.5">Outstanding Balance</div>
+          <div class="font-bold text-xl {% if account.balance_outstanding > 0 %}text-red-600{% else %}text-primary-700{% endif %}">
+            &#8358;{{ account.balance_outstanding|floatformat:2 }}
+          </div>
+        </div>
+      </div>
+
+      {% if account.notes %}
+      <p class="text-sm text-gray-500 mt-4 pt-4 border-t border-sage-100">
+        <i class="fas fa-note-sticky text-gray-300 mr-1.5"></i>{{ account.notes }}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Ledger -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Transaction Ledger</h3>
+      <span class="ml-auto text-xs text-gray-400">{{ ledger|length }} transaction{{ ledger|length|pluralize }}</span>
+    </div>
+    {% if ledger %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Reference</th>
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Type</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Issued (Dr)</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Paid / Returned (Cr)</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Balance</th>
+            <th class="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-sage-50">
+          {% for row in ledger %}
+          {% with txn=row.txn %}
+          <tr class="hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3 text-gray-500 whitespace-nowrap">{{ txn.date|date:"d M Y" }}</td>
+            <td class="px-5 py-3 font-mono text-xs text-gray-700">{{ txn.reference }}</td>
+            <td class="px-5 py-3">
+              {% if txn.transaction_type == 'issue' %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700">
+                <i class="fas fa-box-open mr-1"></i>Issued
+              </span>
+              {% elif txn.transaction_type == 'payment' %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-50 text-primary-700">
+                <i class="fas fa-money-bill-wave mr-1"></i>Payment
+              </span>
+              {% else %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700">
+                <i class="fas fa-rotate-left mr-1"></i>Return
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-right font-medium {% if txn.transaction_type == 'issue' %}text-red-600{% else %}text-gray-300{% endif %}">
+              {% if txn.transaction_type == 'issue' %}&#8358;{{ txn.amount|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="px-5 py-3 text-right font-medium {% if txn.transaction_type != 'issue' %}text-primary-600{% else %}text-gray-300{% endif %}">
+              {% if txn.transaction_type != 'issue' %}&#8358;{{ txn.amount|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="px-5 py-3 text-right font-bold {% if row.balance > 0 %}text-red-600{% else %}text-primary-700{% endif %}">
+              &#8358;{{ row.balance|floatformat:2 }}
+            </td>
+            <td class="px-5 py-3">
+              {% if txn.items.all %}
+              <button onclick="toggleItems('items-{{ txn.pk }}')"
+                      class="text-xs text-primary-600 hover:underline">
+                {{ txn.items.count }} item{{ txn.items.count|pluralize }} <i class="fas fa-chevron-down text-xs ml-0.5"></i>
+              </button>
+              {% endif %}
+              {% if txn.notes %}
+              <p class="text-xs text-gray-400 mt-0.5 italic">{{ txn.notes }}</p>
+              {% endif %}
+              <p class="text-xs text-gray-300 mt-0.5">by {{ txn.recorded_by.get_full_name|default:txn.recorded_by.username }}</p>
+            </td>
+          </tr>
+          {% if txn.items.all %}
+          <tr id="items-{{ txn.pk }}" class="hidden bg-sage-50">
+            <td colspan="7" class="px-8 py-3">
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="text-gray-400">
+                    <th class="text-left py-1 pr-4 font-semibold uppercase tracking-wider">Product</th>
+                    <th class="text-right py-1 pr-4 font-semibold uppercase tracking-wider">Qty</th>
+                    <th class="text-right py-1 pr-4 font-semibold uppercase tracking-wider">Unit Price</th>
+                    <th class="text-right py-1 font-semibold uppercase tracking-wider">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-sage-100">
+                  {% for item in txn.items.all %}
+                  <tr>
+                    <td class="py-1.5 pr-4 text-gray-700">{{ item.product.name }}</td>
+                    <td class="py-1.5 pr-4 text-right text-gray-600">{{ item.quantity }}</td>
+                    <td class="py-1.5 pr-4 text-right text-gray-600">&#8358;{{ item.unit_price|floatformat:2 }}</td>
+                    <td class="py-1.5 text-right font-semibold text-gray-800">&#8358;{{ item.subtotal|floatformat:2 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-12 text-center text-gray-400 text-sm">
+      <i class="fas fa-receipt text-2xl text-gray-200 mb-2 block"></i>
+      No transactions yet. Use <strong>Issue Goods</strong> to start.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Payment modal -->
+{% if user_can_write and account.is_active %}
+<div id="pay-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+    <div class="px-6 py-4 border-b border-sage-200 flex items-center justify-between">
+      <h3 class="font-bold text-gray-800">Record Payment</h3>
+      <button onclick="document.getElementById('pay-modal').classList.add('hidden')"
+              class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+    </div>
+    <form method="post" action="{% url 'credit_payment' account.pk %}" class="p-6 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Paid (&#8358;) <span class="text-red-500">*</span></label>
+        <input type="number" name="amount" min="0.01" step="0.01" required
+               placeholder="0.00"
+               class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+        <p class="text-xs text-gray-400 mt-1">Outstanding: <strong>&#8358;{{ account.balance_outstanding|floatformat:2 }}</strong></p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+        <input type="date" name="date" value="{{ today|date:'Y-m-d' }}"
+               class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (optional)</label>
+        <textarea name="notes" rows="2"
+                  class="w-full border border-sage-200 rounded-xl px-4 py-3 text-sm bg-sage-50 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  placeholder="e.g. Partial payment, bank transfer..."></textarea>
+      </div>
+      <div class="flex gap-3 pt-1">
+        <button type="submit"
+                class="flex-1 text-white py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+                style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">
+          <i class="fas fa-save mr-1.5"></i> Save Payment
+        </button>
+        <button type="button" onclick="document.getElementById('pay-modal').classList.add('hidden')"
+                class="flex-1 bg-sage-100 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-sage-200 transition-colors border border-sage-200">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function toggleItems(id) {
+  const row = document.getElementById(id);
+  if (row) row.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

@@ -161,6 +161,94 @@ class DailySummary(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class CreditAccount(models.Model):
+    """A credit account for a trusted customer (e.g. a school) that takes goods
+    on credit and pays later. Stock is deducted immediately on issuance."""
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name='credit_account')
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Credit — {self.customer.name}"
+
+    @property
+    def total_issued(self):
+        from decimal import Decimal
+        return sum(
+            (t.amount for t in self.transactions.all() if t.transaction_type == 'issue'),
+            Decimal('0'),
+        )
+
+    @property
+    def total_paid(self):
+        from decimal import Decimal
+        return sum(
+            (t.amount for t in self.transactions.all() if t.transaction_type == 'payment'),
+            Decimal('0'),
+        )
+
+    @property
+    def total_returned(self):
+        from decimal import Decimal
+        return sum(
+            (t.amount for t in self.transactions.all() if t.transaction_type == 'return'),
+            Decimal('0'),
+        )
+
+    @property
+    def balance_outstanding(self):
+        from decimal import Decimal
+        total = Decimal('0')
+        for t in self.transactions.all():
+            if t.transaction_type == 'issue':
+                total += t.amount
+            else:
+                total -= t.amount
+        return total
+
+
+class CreditTransaction(models.Model):
+    TYPES = [
+        ('issue', 'Goods Issued'),
+        ('payment', 'Payment Received'),
+        ('return', 'Goods Returned'),
+    ]
+
+    account = models.ForeignKey(CreditAccount, on_delete=models.CASCADE, related_name='transactions')
+    transaction_type = models.CharField(max_length=20, choices=TYPES)
+    reference = models.CharField(max_length=50, unique=True)
+    date = models.DateField(default=timezone.localdate)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    notes = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.reference} — {self.get_transaction_type_display()}"
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            prefix = {'issue': 'CRD', 'payment': 'PMT', 'return': 'RTN'}.get(self.transaction_type, 'TXN')
+            self.reference = f"{prefix}-{timezone.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
+        super().save(*args, **kwargs)
+
+
+class CreditTransactionItem(models.Model):
+    transaction = models.ForeignKey(CreditTransaction, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @property
+    def subtotal(self):
+        return self.quantity * self.unit_price
+
+
 class CashDrawerSession(models.Model):
     """Per-cashier, per-day cash reconciliation.
 

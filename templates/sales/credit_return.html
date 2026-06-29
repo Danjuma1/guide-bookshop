@@ -1,0 +1,173 @@
+{% extends 'base_admin.html' %}
+{% block title %}Record Return — {{ account.customer.name }}{% endblock %}
+{% block page_title %}Record Goods Return{% endblock %}
+{% block extra_head %}
+<style>
+  .form-input { border: 1px solid #e2f0e2; background: #f8fdf8; transition: border-color 0.2s, box-shadow 0.2s; }
+  .form-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); outline: none; background: white; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+  <div class="mb-4">
+    <a href="{% url 'credit_detail' account.pk %}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary-700 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i> Back to {{ account.customer.name }}
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="h-1" style="background:linear-gradient(90deg,#f97316,#fb923c,#fdba74)"></div>
+    <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-orange-50">
+        <i class="fas fa-rotate-left text-orange-500 text-xs"></i>
+      </div>
+      <div>
+        <h3 class="font-semibold text-gray-800">Record Goods Return</h3>
+        <p class="text-xs text-gray-400">from {{ account.customer.name }} — stock will be restored</p>
+      </div>
+    </div>
+    <form method="post" class="p-6 space-y-5">
+      {% csrf_token %}
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Return Date</label>
+          <input type="date" name="date" value="{{ today }}"
+                 class="form-input w-full px-4 py-3 rounded-xl text-sm">
+        </div>
+      </div>
+
+      <!-- Line items -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <label class="block text-sm font-semibold text-gray-700">Items Returned</label>
+          <button type="button" onclick="addRow()"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors">
+            <i class="fas fa-plus mr-1"></i> Add Item
+          </button>
+        </div>
+        <div id="items-container" class="space-y-2">
+          <div class="item-row grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-5">
+              <select name="product_id"
+                      class="form-input w-full px-3 py-2.5 rounded-xl text-sm" required>
+                <option value="">— Select product —</option>
+                {% for p in products %}
+                <option value="{{ p.pk }}" data-price="{{ p.effective_price }}">
+                  {{ p.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-span-2">
+              <input type="number" name="quantity" min="1" placeholder="Qty"
+                     oninput="updateTotal()"
+                     class="form-input w-full px-3 py-2.5 rounded-xl text-sm text-center" required>
+            </div>
+            <div class="col-span-3">
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">&#8358;</span>
+                <input type="number" name="unit_price" min="0" step="0.01" placeholder="Price"
+                       oninput="updateTotal()"
+                       class="form-input w-full pl-6 pr-3 py-2.5 rounded-xl text-sm" required>
+              </div>
+            </div>
+            <div class="col-span-2 text-center">
+              <button type="button" onclick="removeRow(this)" class="text-red-400 hover:text-red-600 transition-colors">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-12 gap-2 mt-2 text-xs text-gray-400 px-1">
+          <div class="col-span-5">Product</div>
+          <div class="col-span-2 text-center">Qty</div>
+          <div class="col-span-3">Unit Price (original)</div>
+          <div class="col-span-2"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between bg-orange-50 rounded-xl px-4 py-3 border border-orange-100">
+        <span class="text-sm font-semibold text-gray-700">Total Return Value (credit to customer)</span>
+        <span class="text-lg font-bold text-orange-600" id="total-display">&#8358;0.00</span>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (optional)</label>
+        <textarea name="notes" rows="2"
+                  class="form-input w-full px-4 py-3 rounded-xl text-sm resize-none"
+                  placeholder="e.g. Damaged, wrong edition..."></textarea>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+                class="flex-1 text-white py-3.5 rounded-2xl font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                style="background:linear-gradient(135deg,#f97316,#ea580c)">
+          <i class="fas fa-rotate-left"></i> Record Return &amp; Restore Stock
+        </button>
+        <a href="{% url 'credit_detail' account.pk %}"
+           class="flex-1 bg-sage-100 text-gray-700 py-3.5 rounded-2xl font-semibold text-sm text-center hover:bg-sage-200 transition-colors border border-sage-200">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const rowTemplate = `
+  <div class="item-row grid grid-cols-12 gap-2 items-center">
+    <div class="col-span-5">
+      <select name="product_id" class="form-input w-full px-3 py-2.5 rounded-xl text-sm" required>
+        <option value="">— Select product —</option>
+        {% for p in products %}
+        <option value="{{ p.pk }}" data-price="{{ p.effective_price }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-span-2">
+      <input type="number" name="quantity" min="1" placeholder="Qty"
+             oninput="updateTotal()"
+             class="form-input w-full px-3 py-2.5 rounded-xl text-sm text-center" required>
+    </div>
+    <div class="col-span-3">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">&#8358;</span>
+        <input type="number" name="unit_price" min="0" step="0.01" placeholder="Price"
+               oninput="updateTotal()"
+               class="form-input w-full pl-6 pr-3 py-2.5 rounded-xl text-sm" required>
+      </div>
+    </div>
+    <div class="col-span-2 text-center">
+      <button type="button" onclick="removeRow(this)" class="text-red-400 hover:text-red-600 transition-colors">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>`;
+
+function addRow() {
+  const container = document.getElementById('items-container');
+  const div = document.createElement('div');
+  div.innerHTML = rowTemplate.trim();
+  container.appendChild(div.firstChild);
+}
+
+function removeRow(btn) {
+  const rows = document.querySelectorAll('.item-row');
+  if (rows.length > 1) { btn.closest('.item-row').remove(); updateTotal(); }
+}
+
+function updateTotal() {
+  let total = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('input[name="quantity"]')?.value) || 0;
+    const price = parseFloat(row.querySelector('input[name="unit_price"]')?.value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('total-display').textContent =
+    '₦' + total.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+document.querySelectorAll('.item-row input').forEach(i => i.addEventListener('input', updateTotal));
+</script>
+{% endblock %}

@@ -87,6 +87,64 @@
     </div>
   </div>
 
+  <!-- Credit Account -->
+  {% if customer.credit_account %}
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-sage-100 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-handshake text-primary-500 text-sm"></i>
+        <h3 class="font-semibold text-gray-700 text-sm">Credit Account</h3>
+        {% if customer.credit_account.is_active %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-50 text-primary-700">Active</span>
+        {% else %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Inactive</span>
+        {% endif %}
+      </div>
+      <a href="{% url 'credit_detail' customer.credit_account.pk %}"
+         class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90"
+         style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        View Ledger
+      </a>
+    </div>
+    <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <div class="bg-gray-50 rounded-xl p-3">
+        <div class="text-xs text-gray-400 mb-0.5">Total Issued</div>
+        <div class="font-bold text-gray-800">&#8358;{{ customer.credit_account.total_issued|floatformat:2 }}</div>
+      </div>
+      <div class="bg-primary-50 rounded-xl p-3">
+        <div class="text-xs text-gray-400 mb-0.5">Total Paid</div>
+        <div class="font-bold text-primary-700">&#8358;{{ customer.credit_account.total_paid|floatformat:2 }}</div>
+      </div>
+      <div class="bg-orange-50 rounded-xl p-3">
+        <div class="text-xs text-gray-400 mb-0.5">Total Returned</div>
+        <div class="font-bold text-orange-600">&#8358;{{ customer.credit_account.total_returned|floatformat:2 }}</div>
+      </div>
+      <div class="rounded-xl p-3 {% if customer.credit_account.balance_outstanding > 0 %}bg-red-50{% else %}bg-green-50{% endif %}">
+        <div class="text-xs text-gray-400 mb-0.5">Outstanding</div>
+        <div class="font-bold {% if customer.credit_account.balance_outstanding > 0 %}text-red-600{% else %}text-primary-700{% endif %}">
+          &#8358;{{ customer.credit_account.balance_outstanding|floatformat:2 }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% elif user_can_write %}
+  <div class="bg-white rounded-2xl border border-sage-200 p-4 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-sage-100">
+        <i class="fas fa-handshake text-gray-400 text-xs"></i>
+      </div>
+      <div>
+        <div class="text-sm font-semibold text-gray-700">No credit account</div>
+        <div class="text-xs text-gray-400">Set one up to allow this customer to buy on credit.</div>
+      </div>
+    </div>
+    <a href="{% url 'credit_account_create' customer.pk %}"
+       class="px-4 py-2 text-sm font-semibold rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-50 transition-colors whitespace-nowrap">
+      <i class="fas fa-plus text-xs mr-1.5"></i> Set Up Credit Account
+    </a>
+  </div>
+  {% endif %}
+
   <!-- Purchase History -->
   <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
     <div class="px-5 py-3.5 border-b border-sage-100 flex items-center gap-2">

@@ -1,0 +1,138 @@
+{% extends 'base_admin.html' %}
+{% block title %}Cash Overview{% endblock %}
+{% block page_title %}Cash Overview{% endblock %}
+{% block content %}
+<div class="space-y-6 max-w-6xl">
+
+  <!-- Header with date nav -->
+  <div class="bg-white rounded-2xl border border-sage-200 p-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#16a34a,#14532d)">
+        <i class="fas fa-money-bill-transfer text-white text-sm"></i>
+      </div>
+      <div>
+        <div class="font-semibold text-gray-800">Cash Overview</div>
+        <div class="text-xs text-gray-400">All cashiers · {{ target_date|date:"l, d F Y" }}</div>
+      </div>
+    </div>
+    <form method="get" class="flex items-center gap-2">
+      {% if prev_date %}
+      <a href="?date={{ prev_date|date:'Y-m-d' }}"
+         class="px-3 py-2 text-xs rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-50 transition-colors">
+        <i class="fas fa-chevron-left mr-1"></i>Prev
+      </a>
+      {% endif %}
+      <input type="date" name="date" value="{{ date_str }}"
+             class="border border-sage-200 rounded-xl px-3 py-2 text-sm bg-sage-50 focus:outline-none focus:ring-2 focus:ring-primary-400">
+      <button type="submit"
+              class="px-4 py-2 text-xs font-semibold rounded-xl text-white transition-all hover:opacity-90"
+              style="background:linear-gradient(135deg,#16a34a,#14532d)">Go</button>
+      {% if next_date %}
+      <a href="?date={{ next_date|date:'Y-m-d' }}"
+         class="px-3 py-2 text-xs rounded-xl border border-sage-200 text-gray-600 hover:bg-sage-50 transition-colors">
+        Next<i class="fas fa-chevron-right ml-1"></i>
+      </a>
+      {% endif %}
+      {% if target_date != today %}
+      <a href="?date={{ today|date:'Y-m-d' }}"
+         class="px-3 py-2 text-xs font-semibold rounded-xl bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors">Today</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Aggregate stat cards -->
+  {% if sessions %}
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="stat-card p-4">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Opening</div>
+      <div class="text-xl font-bold text-amber-600">&#8358;{{ totals.opening|floatformat:2 }}</div>
+    </div>
+    <div class="stat-card p-4">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Cash Sales</div>
+      <div class="text-xl font-bold text-blue-600">&#8358;{{ totals.cash_sales|floatformat:2 }}</div>
+    </div>
+    <div class="stat-card p-4">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Expected</div>
+      <div class="text-xl font-bold text-primary-700">&#8358;{{ totals.expected|floatformat:2 }}</div>
+    </div>
+    <div class="stat-card p-4">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Transferred</div>
+      <div class="text-xl font-bold text-orange-600">&#8358;{{ totals.transferred|floatformat:2 }}</div>
+    </div>
+    <div class="stat-card p-4">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Carried Fwd</div>
+      <div class="text-xl font-bold text-purple-600">&#8358;{{ totals.closing|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Sessions table -->
+  <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-sage-200 flex items-center gap-2">
+      <div class="w-1 h-5 rounded-full" style="background:linear-gradient(#16a34a,#4ade80)"></div>
+      <h3 class="font-semibold text-gray-800">Cashier Sessions — {{ target_date|date:"d M Y" }}</h3>
+      <span class="ml-auto text-xs text-gray-400">{{ sessions|length }} cashier{{ sessions|length|pluralize }}</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-sage-50 border-b border-sage-100">
+            <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cashier</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Opening</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Cash Sales</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Expected</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Transferred</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Carried Fwd</th>
+            <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Variance</th>
+            <th class="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions %}
+          <tr class="border-b border-sage-50 hover:bg-sage-50 transition-colors">
+            <td class="px-5 py-3 font-semibold text-gray-800">{{ s.cashier.get_full_name|default:s.cashier.username }}</td>
+            <td class="px-5 py-3 text-right text-gray-600">&#8358;{{ s.opening_float|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-blue-600 font-medium">&#8358;{{ s.cash_sales|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right font-bold text-primary-700">&#8358;{{ s.expected_cash|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-orange-600">&#8358;{{ s.cash_transferred_to_bank|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-purple-600">&#8358;{{ s.closing_float|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right">
+              {% if s.is_closed %}
+                <span class="font-bold {% if s.variance == 0 %}text-gray-600{% elif s.variance > 0 %}text-blue-600{% else %}text-red-600{% endif %}">
+                  &#8358;{{ s.variance|floatformat:2 }}
+                </span>
+              {% else %}
+                <span class="text-gray-300 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-center">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if s.is_closed %}bg-gray-100 text-gray-600{% else %}bg-primary-50 text-primary-700{% endif %}">
+                {% if s.is_closed %}<i class="fas fa-lock mr-1"></i>Closed{% else %}<i class="fas fa-unlock mr-1"></i>Open{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          <!-- Totals row -->
+          <tr class="bg-sage-50 border-t-2 border-sage-200 font-bold">
+            <td class="px-5 py-3 text-gray-700">Total</td>
+            <td class="px-5 py-3 text-right text-gray-700">&#8358;{{ totals.opening|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-blue-700">&#8358;{{ totals.cash_sales|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-primary-700">&#8358;{{ totals.expected|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-orange-700">&#8358;{{ totals.transferred|floatformat:2 }}</td>
+            <td class="px-5 py-3 text-right text-purple-700">&#8358;{{ totals.closing|floatformat:2 }}</td>
+            <td class="px-5 py-3" colspan="2"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="bg-white rounded-2xl border border-sage-200 p-16 text-center">
+    <i class="fas fa-cash-register text-4xl text-gray-200 mb-3 block"></i>
+    <p class="text-gray-500 font-medium">No cash drawer sessions recorded for {{ target_date|date:"d M Y" }}.</p>
+    <p class="text-gray-400 text-sm mt-1">Sessions are created when cashiers open their drawers.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
