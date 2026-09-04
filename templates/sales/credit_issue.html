@@ -5,6 +5,68 @@
 <style>
   .form-input { border: 1px solid #e2f0e2; background: #f8fdf8; transition: border-color 0.2s, box-shadow 0.2s; }
   .form-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); outline: none; background: white; }
+  /* Searchable dropdown */
+  .product-picker { position: relative; }
+  .product-picker .picker-display {
+    width: 100%;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: #374151;
+    font-weight: 500;
+    user-select: none;
+  }
+  .product-picker .picker-display:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+  .product-picker .picker-dropdown {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: white;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    overflow: hidden;
+    display: none;
+  }
+  .product-picker .picker-dropdown.open { display: block; }
+  .product-picker .picker-search {
+    padding: 0.5rem;
+    border-bottom: 1px solid #f0f9f0;
+  }
+  .product-picker .picker-search input {
+    width: 100%;
+    border: 1px solid #d1e8d1;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem 0.375rem 2rem;
+    font-size: 0.8125rem;
+    background: #f8fdf8;
+    outline: none;
+  }
+  .product-picker .picker-search input:focus { border-color: #16a34a; background: white; }
+  .product-picker .picker-search .search-icon { position: absolute; left: 1.375rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.7rem; pointer-events: none; }
+  .product-picker .picker-list { max-height: 220px; overflow-y: auto; }
+  .product-picker .picker-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .product-picker .picker-item:hover { background: #f0fdf4; color: #15803d; }
+  .product-picker .picker-item.selected { background: #dcfce7; color: #14532d; font-weight: 600; }
+  .product-picker .picker-item .item-stock { font-size: 0.7rem; color: #9ca3af; flex-shrink: 0; }
+  .product-picker .picker-empty { padding: 1rem 0.75rem; text-align: center; color: #9ca3af; font-size: 0.8125rem; }
 </style>
 {% endblock %}
 {% block content %}
@@ -50,24 +112,31 @@
         <div id="items-container" class="space-y-2">
           <div class="item-row grid grid-cols-12 gap-2 items-center">
             <div class="col-span-5">
-              <select name="product_id" onchange="fillPrice(this)"
-                      class="form-input w-full px-3 py-2.5 rounded-xl text-sm" required>
-                <option value="">— Select product —</option>
-                {% for p in products %}
-                <option value="{{ p.pk }}" data-price="{{ p.effective_price }}" data-stock="{{ p.quantity_in_stock }}">
-                  {{ p.name }} ({{ p.quantity_in_stock }} in stock)
-                </option>
-                {% endfor %}
-              </select>
+              <div class="product-picker relative">
+                <input type="hidden" name="product_id">
+                <div class="picker-display" tabindex="0">
+                  <span class="picker-label text-gray-400">Search &amp; select product…</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs flex-shrink-0"></i>
+                </div>
+                <div class="picker-dropdown">
+                  <div class="picker-search relative">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" placeholder="Type to search…" autocomplete="off">
+                  </div>
+                  <div class="picker-list"></div>
+                </div>
+              </div>
             </div>
             <div class="col-span-2">
               <input type="number" name="quantity" min="1" placeholder="Qty"
+                     oninput="updateTotal()"
                      class="form-input w-full px-3 py-2.5 rounded-xl text-sm text-center" required>
             </div>
             <div class="col-span-3">
               <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">&#8358;</span>
                 <input type="number" name="unit_price" min="0" step="0.01" placeholder="Price"
+                       oninput="updateTotal()"
                        class="form-input w-full pl-6 pr-3 py-2.5 rounded-xl text-sm" required>
               </div>
             </div>
@@ -115,18 +184,25 @@
 </div>
 
 <script>
+const products = [{% for p in products %}{ id:{{ p.id }}, name:'{{ p.name|escapejs }}', price:{{ p.effective_price }}, stock:{{ p.quantity_in_stock }} },{% endfor %}];
+
 const rowTemplate = `
   <div class="item-row grid grid-cols-12 gap-2 items-center">
     <div class="col-span-5">
-      <select name="product_id" onchange="fillPrice(this)"
-              class="form-input w-full px-3 py-2.5 rounded-xl text-sm" required>
-        <option value="">— Select product —</option>
-        {% for p in products %}
-        <option value="{{ p.pk }}" data-price="{{ p.effective_price }}" data-stock="{{ p.quantity_in_stock }}">
-          {{ p.name }} ({{ p.quantity_in_stock }} in stock)
-        </option>
-        {% endfor %}
-      </select>
+      <div class="product-picker relative">
+        <input type="hidden" name="product_id">
+        <div class="picker-display" tabindex="0">
+          <span class="picker-label text-gray-400">Search &amp; select product…</span>
+          <i class="fas fa-chevron-down text-gray-400 text-xs flex-shrink-0"></i>
+        </div>
+        <div class="picker-dropdown">
+          <div class="picker-search relative">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" placeholder="Type to search…" autocomplete="off">
+          </div>
+          <div class="picker-list"></div>
+        </div>
+      </div>
     </div>
     <div class="col-span-2">
       <input type="number" name="quantity" min="1" placeholder="Qty"
@@ -148,11 +224,76 @@ const rowTemplate = `
     </div>
   </div>`;
 
+function createPicker(row) {
+  const wrapper = row.querySelector('.product-picker');
+  const hiddenInput = wrapper.querySelector('input[name=product_id]');
+  const display = wrapper.querySelector('.picker-display');
+  const dropdown = wrapper.querySelector('.picker-dropdown');
+  const searchInput = wrapper.querySelector('.picker-search input');
+  const list = wrapper.querySelector('.picker-list');
+  let selectedId = null;
+
+  function renderList(filter) {
+    const term = (filter || '').toLowerCase();
+    const filtered = term ? products.filter(p => p.name.toLowerCase().includes(term)) : products;
+    if (!filtered.length) {
+      list.innerHTML = '<div class="picker-empty">No products found</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(p =>
+      `<div class="picker-item${selectedId == p.id ? ' selected' : ''}" data-id="${p.id}" data-price="${p.price}" data-name="${p.name.replace(/"/g,'&quot;')}">
+        <span>${p.name}</span>
+        <span class="item-stock">${p.stock} in stock</span>
+      </div>`
+    ).join('');
+    list.querySelectorAll('.picker-item').forEach(item => {
+      item.addEventListener('click', () => selectItem(item));
+    });
+  }
+
+  function selectItem(item) {
+    selectedId = item.dataset.id;
+    hiddenInput.value = selectedId;
+    display.querySelector('.picker-label').textContent = item.dataset.name;
+    display.querySelector('.picker-label').classList.remove('text-gray-400');
+    const priceInput = row.querySelector('[name=unit_price]');
+    if (item.dataset.price) priceInput.value = parseFloat(item.dataset.price).toFixed(2);
+    closeDropdown();
+    updateTotal();
+  }
+
+  function openDropdown() {
+    dropdown.classList.add('open');
+    searchInput.value = '';
+    renderList('');
+    searchInput.focus();
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    renderList(searchInput.value);
+  }
+
+  display.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.contains('open') ? closeDropdown() : openDropdown();
+  });
+  display.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDropdown(); } });
+
+  searchInput.addEventListener('input', () => renderList(searchInput.value));
+  searchInput.addEventListener('click', e => e.stopPropagation());
+
+  document.addEventListener('click', () => { if (dropdown.classList.contains('open')) closeDropdown(); });
+  renderList('');
+}
+
 function addRow() {
   const container = document.getElementById('items-container');
   const div = document.createElement('div');
   div.innerHTML = rowTemplate.trim();
-  container.appendChild(div.firstChild);
+  const rowEl = div.firstChild;
+  container.appendChild(rowEl);
+  createPicker(rowEl);
 }
 
 function removeRow(btn) {
@@ -161,15 +302,6 @@ function removeRow(btn) {
     btn.closest('.item-row').remove();
     updateTotal();
   }
-}
-
-function fillPrice(sel) {
-  const opt = sel.selectedOptions[0];
-  const price = opt ? opt.dataset.price : '';
-  const row = sel.closest('.item-row');
-  const priceInput = row.querySelector('input[name="unit_price"]');
-  if (price) priceInput.value = parseFloat(price).toFixed(2);
-  updateTotal();
 }
 
 function updateTotal() {
@@ -184,6 +316,6 @@ function updateTotal() {
 }
 
 // Wire up existing first row
-document.querySelectorAll('.item-row input').forEach(i => i.addEventListener('input', updateTotal));
+document.querySelectorAll('.item-row').forEach(row => createPicker(row));
 </script>
 {% endblock %}
