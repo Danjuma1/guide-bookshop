@@ -137,6 +137,17 @@
             <div class="font-semibold text-gray-800">{{ order.get_payment_method_display }}</div>
           </div>
         </div>
+        <div class="flex items-start gap-3">
+          <i class="fas fa-truck text-gray-300 w-4 mt-0.5 text-xs"></i>
+          <div>
+            <div class="text-xs text-gray-400 font-medium mb-0.5">Delivery Cost</div>
+            {% if order.delivery_fee_acknowledged %}
+            <div class="font-semibold text-green-700"><i class="fas fa-check-circle mr-1"></i>Customer agreed to pay delivery</div>
+            {% else %}
+            <div class="font-semibold text-gray-400">Not acknowledged</div>
+            {% endif %}
+          </div>
+        </div>
         {% if order.notes %}
         <div class="flex items-start gap-3">
           <i class="fas fa-sticky-note text-gray-300 w-4 mt-0.5 text-xs"></i>

@@ -67,6 +67,27 @@
       <!-- Left: Form -->
       <div class="lg:col-span-2 space-y-5">
 
+        <!-- Delivery Notice -->
+        <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-truck text-amber-600"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-amber-900 text-sm mb-1">Please Note: Delivery Is at the Customer's Cost</h3>
+              <p class="text-sm text-amber-800 leading-relaxed">
+                Our store is located in <strong>Lagos</strong>. Delivery fees are <strong>not included</strong> in your order total
+                and are paid by you. If you're outside Lagos, delivery can cost a lot, sometimes more than a small order,
+                so please keep this in mind before placing your order.
+              </p>
+              <label class="flex items-start gap-2.5 mt-3 cursor-pointer">
+                <input type="checkbox" name="delivery_ack" required class="mt-0.5 accent-green-600 w-4 h-4">
+                <span class="text-sm font-semibold text-amber-900">I understand that I will pay for my own delivery.</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Customer Info -->
         <div class="bg-white rounded-2xl border border-sage-200 overflow-hidden">
           <div class="px-6 py-4 border-b border-sage-200 flex items-center gap-3">
@@ -296,6 +317,8 @@ const modal = document.getElementById('payment-modal');
 const form = document.querySelector('form[method=post]');
 
 document.getElementById('place-order-btn').addEventListener('click', function () {
+  // form.submit() skips browser validation, so check required fields (incl. delivery acknowledgement) first
+  if (!form.reportValidity()) return;
   const selected = document.querySelector('input[name=payment_method]:checked');
   if (selected && selected.value === 'transfer') {
     modal.classList.remove('hidden');

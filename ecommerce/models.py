@@ -36,6 +36,8 @@ class OnlineOrder(models.Model):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
+    # Customer confirmed at checkout that delivery fees are theirs to pay (store is in Lagos)
+    delivery_fee_acknowledged = models.BooleanField(default=False)
     order_date = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

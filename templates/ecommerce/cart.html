@@ -112,6 +112,10 @@
               <span class="font-bold text-xl text-primary-700">&#8358;{{ total|currency }}</span>
             </div>
           </div>
+          <div class="flex gap-2.5 p-3 mb-5 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800 leading-relaxed">
+            <i class="fas fa-truck text-amber-500 mt-0.5"></i>
+            <span>Our store is in <strong>Lagos</strong>. Delivery fees are <strong>not included</strong> in this total and are paid by the customer.</span>
+          </div>
           <a href="{% url 'checkout' %}"
              class="w-full text-white py-3.5 rounded-2xl font-bold text-sm text-center transition-all hover:opacity-90 hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg"
              style="background:linear-gradient(135deg,#16a34a,#14532d);box-shadow:0 4px 15px rgba(22,163,74,0.3)">

@@ -148,10 +148,15 @@ def checkout(request):
         shipping_address = request.POST.get('shipping_address', '').strip()
         payment_method = request.POST.get('payment_method', 'pay_on_pickup')
         notes = request.POST.get('notes', '').strip()
+        delivery_ack = request.POST.get('delivery_ack') == 'on'
 
         # Input validation
         if not all([customer_name, customer_email, customer_phone, shipping_address]):
             messages.error(request, 'Please fill in all required fields.')
+            return render(request, 'ecommerce/checkout.html', {'cart': cart, 'items': items, 'total': total})
+
+        if not delivery_ack:
+            messages.error(request, 'Please confirm that you will cover your own delivery cost.')
             return render(request, 'ecommerce/checkout.html', {'cart': cart, 'items': items, 'total': total})
 
         if len(customer_name) > 200 or len(customer_phone) > 20 or len(shipping_address) > 500:
@@ -184,6 +189,7 @@ def checkout(request):
             shipping_address=shipping_address,
             payment_method=payment_method,
             notes=notes[:1000],
+            delivery_fee_acknowledged=delivery_ack,
             user=request.user if request.user.is_authenticated else None,
         )
         for item in items:
