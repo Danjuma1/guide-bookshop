@@ -143,10 +143,6 @@
         </a>
         <span class="text-primary-700">|</span>
         <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button type="submit" class="hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer">Logout</button></form>
-      {% else %}
-        <a href="{% url 'login' %}" class="flex items-center gap-1.5 hover:text-white transition-colors">
-          <i class="fas fa-user-circle"></i> <span class="hidden sm:inline">Staff Login</span>
-        </a>
       {% endif %}
     </div>
   </div>
@@ -330,7 +326,7 @@
 
     <!-- Bottom Bar -->
     <div class="border-t border-primary-900 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-      <p class="text-primary-400 text-xs">&copy; {% now "Y" %} Guide Bookshop & Stationeries. All rights reserved.</p>
+      <p class="text-primary-400 text-xs">{# Discreet staff login entry: the © symbol links to the login page #}<a href="{% url 'login' %}" rel="nofollow" class="text-inherit no-underline cursor-text" style="color:inherit">&copy;</a> {% now "Y" %} Guide Bookshop & Stationeries. All rights reserved.</p>
       <div class="flex items-center gap-2 text-primary-500 text-xs">
         <i class="fas fa-shield-halved text-primary-600"></i>
         Secure &amp; Trusted Shopping
